@@ -8,6 +8,14 @@ namespace NDS_Networking_Project
     // Represents a client
     public class ClientSocket
     {
+        public enum State
+        {
+            Login,
+            Chatting,
+            Playing
+        }
+
+        public State state;
         public string clientUserName;
         public bool isModerator;
         public bool isConnected;

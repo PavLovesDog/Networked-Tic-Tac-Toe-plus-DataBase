@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "pqWGWV/Gh8vApq6RNA80XT1Jj4jYoJMcfxYbV+hIJR6LNnzOxbn2f2pstguelI5D+CZenMmrdytVMkD7fa1C7g==",
+  "dgSpecHash": "FCZR3cZyx/5osWVE2F6gw7IijQ+fuPlhQL08jM/fm91Ldgkb241ggfvpzfRNJ/W2wKQ2kEHWCX8/Fty3rdFCGg==",
   "success": true,
   "projectFilePath": "C:\\Users\\charl\\Desktop\\Git\\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\\NDS Tic Tac Toe Project.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\charl\\.nuget\\packages\\stub.system.data.sqlite.core.netstandard\\1.0.116\\stub.system.data.sqlite.core.netstandard.1.0.116.nupkg.sha512",
+    "C:\\Users\\charl\\.nuget\\packages\\system.data.sqlite.core\\1.0.116\\system.data.sqlite.core.1.0.116.nupkg.sha512"
+  ],
   "logs": []
 }

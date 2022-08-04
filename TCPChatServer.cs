@@ -4,6 +4,7 @@ using System.Text;
 using System.Net.Sockets;
 using System.Net;
 using System.Windows.Forms;
+using System.Data.SQLite; // Using statement for SQL nuget package
 
 namespace NDS_Networking_Project
 {
@@ -15,7 +16,7 @@ namespace NDS_Networking_Project
 
     public class TCPChatServer : TCPChatBase
     {
-        public static Form1 window = new Form1();
+        public static ChatWindow window = new ChatWindow();
 
         // Socket to represent the server itself
         public Socket serverSocket = new Socket(AddressFamily.InterNetwork, 
@@ -61,9 +62,26 @@ namespace NDS_Networking_Project
             //start thread to read connecting clients, when connection happens, use AcceptCallBack function to deal with it
             serverSocket.BeginAccept(AcceptCallBack, this); // BeginAccept makes a thread, an asyncronus activity (if there are multiple, they work at their OWN pace)
             chatTextBox.Text += "<< Server Setup Complete >>" + nl;
+
+            //TODO Set up database here??
+            chatTextBox.Text += "...constructing database..." + nl; // notify of db building..
+            // Create Database
+            string connectionString = "Data Source=TCPChatDB.db";
+            var connection = new SQLiteConnection(connectionString);
+            connection.Open();
+
+            // Build Table to store Tic Tac Toe data--------
+            // Create commandtext string to run
+            SQLiteCommand cmd = new SQLiteCommand("CREATE TABLE IF NOT EXISTS Users(ID INTEGER PRIMARY KEY," +
+                                                                                   "Username Text," +
+                                                                                   "Password Text," +
+                                                                                   "Wins INTEGER," +
+                                                                                   "Losses INTEGER," +
+                                                                                   "Draws INTEGER)", connection);
+            cmd.ExecuteNonQuery(); // run command
+            chatTextBox.Text += "<< Database Initialization Complete >>" + nl;
         }
 
-        //TODO Set up database here??
 
         // to close/diconnect all sockets at end of program
         public void CloseAllSockets()
@@ -333,7 +351,7 @@ namespace NDS_Networking_Project
                 privateMsgReceiver = "";
                 privateMessage = "";
             }
-            else if (text.ToLower() == "!username")
+            else if (text.ToLower() == "!username") //TODO CHANGE THIS FUNCTION to check for Username and password withing database
             {
                 //NOTE TO SELF
                 //string IP = currentClientSocket.socket.LocalEndPoint.ToString(); // LOCAL is the server host
@@ -359,13 +377,19 @@ namespace NDS_Networking_Project
                         break;
 
                     }
-                    else if (clientSockets[i].clientUserName == null)
+                    else if (clientSockets[i].clientUserName == null) // No username by that name. SUCCESS!
                     {
                         currentClientSocket.clientUserName = setupUserName;
 
                         // Send data to update display box for client Usernames
                         data = Encoding.ASCII.GetBytes("!displayusername " + setupUserName);
                         currentClientSocket.socket.Send(data);
+
+                        //TODO Update State message send here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        //Send data to client to change its state to Chatting
+                        data = Encoding.ASCII.GetBytes("!changestate 1");
+                        currentClientSocket.socket.Send(data);
+
 
                         // change data to represent success
                         data = Encoding.ASCII.GetBytes(nl + "<< Success >>" +
@@ -393,7 +417,7 @@ namespace NDS_Networking_Project
                 data = Encoding.ASCII.GetBytes(nl + "-----------------------------------------------------------");
                 currentClientSocket.socket.Send(data);
 
-            }
+            } 
             else if (text.ToLower() == "!user")
             {
                 byte[] data = Encoding.ASCII.GetBytes(" "); // create empty byte array

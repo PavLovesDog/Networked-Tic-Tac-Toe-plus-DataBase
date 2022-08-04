@@ -40,6 +40,7 @@ namespace NDS_Networking_Project
                 tcp.clientUsernameTextBox = clientUsername;
                 tcp.clientSocket.isConnected = true; // bool for connectivity
                 tcp.clientSocket.isModerator = false; // set to false on start up
+                tcp.clientSocket.state = ClientSocket.State.Login; // set state to Login state upon connection
             }
             return tcp;
         }
@@ -118,11 +119,20 @@ namespace NDS_Networking_Project
 
             // Store username data for display
             string tempUserName = "";
+            string stateEnum = "";
             if (text.Contains("!displayusername "))
             {
                 // create string to hold the username data
                 tempUserName = text.Remove(0, 17);
                 text = text.Remove(16, text.Length - 16);
+            }
+            else if(text.Contains("!changestate ")) //TODO CHANGE STATE COMMAND AMMENDENT
+            {
+                // seperate string data and assign correctly
+                string[] subStrings = text.Split(' ');
+                
+                stateEnum = subStrings[1].Remove(1);
+                text = subStrings[0];
             }
 
             // Reaction Commands --------------------------------------------------------
@@ -170,6 +180,21 @@ namespace NDS_Networking_Project
                 {
                     clientUsernameTextBox.Text = tempUserName;
                 });
+            }
+            else if(text.ToLower() == "!changestate")
+            {
+                if(stateEnum == "0")
+                {
+                    clientSocket.state = ClientSocket.State.Login;
+                }
+                else if(stateEnum == "1")
+                {
+                    clientSocket.state = ClientSocket.State.Chatting;
+                }
+                else if (stateEnum == "2")
+                {
+                    clientSocket.state = ClientSocket.State.Playing;
+                }
             }
             else // regular chat message!
             {
