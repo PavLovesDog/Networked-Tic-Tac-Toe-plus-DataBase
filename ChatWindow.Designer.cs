@@ -54,6 +54,8 @@ namespace NDS_Networking_Project
             this.button7 = new System.Windows.Forms.Button();
             this.button8 = new System.Windows.Forms.Button();
             this.button9 = new System.Windows.Forms.Button();
+            this.TicTacToelabel = new System.Windows.Forms.Label();
+            this.PlayerTurnLabel = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.LogoPicBox)).BeginInit();
             this.SuspendLayout();
             // 
@@ -354,6 +356,28 @@ namespace NDS_Networking_Project
             this.button9.UseVisualStyleBackColor = false;
             this.button9.Click += new System.EventHandler(this.button9_Click);
             // 
+            // TicTacToelabel
+            // 
+            this.TicTacToelabel.AutoSize = true;
+            this.TicTacToelabel.BackColor = System.Drawing.Color.Transparent;
+            this.TicTacToelabel.Font = new System.Drawing.Font("Gill Sans Nova Light", 15F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.TicTacToelabel.Location = new System.Drawing.Point(946, 80);
+            this.TicTacToelabel.Name = "TicTacToelabel";
+            this.TicTacToelabel.Size = new System.Drawing.Size(140, 32);
+            this.TicTacToelabel.TabIndex = 25;
+            this.TicTacToelabel.Text = "Tic Tac Toe";
+            // 
+            // PlayerTurnLabel
+            // 
+            this.PlayerTurnLabel.AutoSize = true;
+            this.PlayerTurnLabel.BackColor = System.Drawing.Color.Transparent;
+            this.PlayerTurnLabel.Font = new System.Drawing.Font("Gill Sans Nova Light", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.PlayerTurnLabel.Location = new System.Drawing.Point(973, 382);
+            this.PlayerTurnLabel.Name = "PlayerTurnLabel";
+            this.PlayerTurnLabel.Size = new System.Drawing.Size(87, 22);
+            this.PlayerTurnLabel.TabIndex = 26;
+            this.PlayerTurnLabel.Text = "X\'s Turn...";
+            // 
             // ChatWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
@@ -361,6 +385,8 @@ namespace NDS_Networking_Project
             this.BackgroundImage = global::NDS_Networking_Project.Properties.Resources.MSNbackground;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.ClientSize = new System.Drawing.Size(1208, 455);
+            this.Controls.Add(this.PlayerTurnLabel);
+            this.Controls.Add(this.TicTacToelabel);
             this.Controls.Add(this.button9);
             this.Controls.Add(this.button8);
             this.Controls.Add(this.button7);
@@ -422,6 +448,8 @@ namespace NDS_Networking_Project
         private System.Windows.Forms.Button button7;
         private System.Windows.Forms.Button button8;
         private System.Windows.Forms.Button button9;
+        private System.Windows.Forms.Label TicTacToelabel;
+        private System.Windows.Forms.Label PlayerTurnLabel;
     }
 }
 

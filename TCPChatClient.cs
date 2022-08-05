@@ -76,10 +76,8 @@ namespace NDS_Networking_Project
             //AddToChat("<< Connected >>");
             AddToChat(nl + "<< Connected >>" + nl + "...ready to receive data..." +
                       nl + nl + "-----------------------------------------------------------------------" +
-                      nl + "< Please enter your username using the '!username' command >" +
-                      nl + "  e.g !username [new_username_here]" +
-                      nl + "                                  - OR - " +
-                      nl + "< Type !commands to see all available commands >" +
+                      nl + "< Please enter your Username & Password using the '!login' command >" +
+                      nl + "  e.g !login [username_here] [password]" +
                       nl + "-----------------------------------------------------------");
 
             //start thread for receeiving data from the server

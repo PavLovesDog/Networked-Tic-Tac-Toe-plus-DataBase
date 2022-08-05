@@ -77,9 +77,11 @@ namespace NDS_Networking_Project
                                                                                    "Password Text," +
                                                                                    "Wins INTEGER," +
                                                                                    "Losses INTEGER," +
-                                                                                   "Draws INTEGER)", connection);
+                                                                                   "Draws INTEGER," +
+                                                                                   "UNIQUE(ID, Username))", connection); // make ID and Username unique so there are NO duplicates
             cmd.ExecuteNonQuery(); // run command
             chatTextBox.Text += "<< Database Initialization Complete >>" + nl;
+            connection.Close(); //close DB and save
         }
 
 
@@ -166,19 +168,33 @@ namespace NDS_Networking_Project
             AddToChat(text);
 
             // Strings for command specific data control
-            string setupUserName = "";
+            string clientLoginUsername = "";
+            string clientPassword = "";
             string changeNameUserName = "";
             string magicQuestion = "";
             string userToKick = "";
-            
+
             //Check for text specific commands from clients and adjust data accordingly below -----------
-            if (text.Contains("!username ")) // setting name
+            if (text.Contains("!login ")) // setting username & password
             {
+                string[] subString = text.Split(' ');
+
                 // create string to hold the username data
-                setupUserName = text.Remove(0, 10);
+                if (subString.Length == 4) // if the username is two words
+                {
+                    clientLoginUsername = subString[1] + " " + subString[2];
+                    clientPassword = subString[3];
+                }
+                else
+                {
+                    clientLoginUsername = subString[1];
+                    clientPassword = subString[2];
+                }
+                // OLD setupUserName = text.Remove(0, 10);
 
                 //append text so it triggers command
-                text = text.Remove(9, text.Length - 9);
+                text = subString[0];
+                // OLDtext = text.Remove(9, text.Length - 9);
             }
             else if (text.Contains("!user ")) // changing name
             {
@@ -351,73 +367,205 @@ namespace NDS_Networking_Project
                 privateMsgReceiver = "";
                 privateMessage = "";
             }
-            else if (text.ToLower() == "!username") //TODO CHANGE THIS FUNCTION to check for Username and password withing database
+            else if (text.ToLower() == "!login") //TODO CHANGE THIS FUNCTION to check for Username and password withing database
             {
-                //NOTE TO SELF
-                //string IP = currentClientSocket.socket.LocalEndPoint.ToString(); // LOCAL is the server host
-                //string port = currentClientSocket.socket.RemoteEndPoint.ToString(); // REMOTE is the connected user
-
+                //variables for login processing
                 byte[] data = Encoding.ASCII.GetBytes(" "); // create empty byte array
-                bool getKicked = false;
+                // bool getKicked = false;
 
-                //set username------
-                // run through connected users
-                for (int i = 0; i < clientSockets.Count; ++i)
+                //Open DB
+                string connectionString = "Data Source=TCPChatDB.db"; // find and open db
+                var connection = new SQLiteConnection(connectionString);
+                connection.Open();
+
+                // create command string to check if any data in DB
+                string sqlCommandText = "SELECT COUNT(*) FROM Users";
+
+                // create command
+                SQLiteCommand cmd = new SQLiteCommand(sqlCommandText, connection);
+
+                //Try INSERT data if Doesn't exist
+                long numRows = (long)cmd.ExecuteScalar();
+                if (numRows > 0)
                 {
-                    // if the name is taken
-                    if (clientSockets[i].clientUserName == setupUserName)
-                    {
-                        // tell them it's been taken
-                        data = Encoding.ASCII.GetBytes(nl + "!!! Username: " + setupUserName + " is already taken !!!" +
-                                                       nl + "<< Disconnecting User >>");
-                        currentClientSocket.socket.Send(data); // send it back
-
-                        // boot them
-                        getKicked = true;
-                        break;
-
-                    }
-                    else if (clientSockets[i].clientUserName == null) // No username by that name. SUCCESS!
-                    {
-                        currentClientSocket.clientUserName = setupUserName;
-
-                        // Send data to update display box for client Usernames
-                        data = Encoding.ASCII.GetBytes("!displayusername " + setupUserName);
-                        currentClientSocket.socket.Send(data);
-
-                        //TODO Update State message send here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                        //Send data to client to change its state to Chatting
-                        data = Encoding.ASCII.GetBytes("!changestate 1");
-                        currentClientSocket.socket.Send(data);
-
-
-                        // change data to represent success
-                        data = Encoding.ASCII.GetBytes(nl + "<< Success >>" +
-                                                       nl + "Your New Username: " + setupUserName + nl +
-                                                       nl + "Welcome to chat " + "'" + setupUserName + "'");
-                    }
-                }
-
-                // Notify
-                if (getKicked)
-                {
-                    data = Encoding.ASCII.GetBytes("!forcedkick"); // command for client to get disconnect 
-                    currentClientSocket.socket.Send(data); // send it back
-                    clientSockets.Remove(currentClientSocket);
-                    getKicked = false; // reset bool
-                    return; // bail early
+                    // Data already exists. Move on
                 }
                 else
                 {
-                    SendToAll(nl + "<< " + currentClientSocket.clientUserName + " has joined the chat >>", currentClientSocket);
-                    currentClientSocket.socket.Send(data); // send it back
-                    // notify all you're here!
+                    // INSERT data!
+                    cmd.CommandText = string.Format("INSERT OR IGNORE INTO Users(Username, Password) " +
+                                         "VALUES('{0}','{1}')", clientLoginUsername, clientPassword);
+                    cmd.ExecuteNonQuery(); // execute adding of new user
                 }
 
-                data = Encoding.ASCII.GetBytes(nl + "-----------------------------------------------------------");
-                currentClientSocket.socket.Send(data);
+                // update command to check data already in DB table Users
+                sqlCommandText = string.Format("SELECT Username, Password " +
+                                                      "FROM Users");
+                cmd.CommandText = sqlCommandText;
+                SQLiteDataReader rdr = cmd.ExecuteReader();// read data
 
-            } 
+                //Run through info thats been returned
+                while (rdr.Read())
+                {
+                    string storedName = rdr.GetString(0); // index would be 0 as Username is called first in command text
+                    string storedPassword = rdr.GetString(1);
+                    if (clientLoginUsername == storedName)
+                    {
+                        //USER EXISTS
+                        // check password match
+                        if(clientPassword == storedPassword)
+                        {
+                            //SUCCESS! log them in
+                            currentClientSocket.clientUserName = clientLoginUsername; // set usernme
+
+                            // Send data to update display box for client Usernames
+                            data = Encoding.ASCII.GetBytes("!displayusername " + clientLoginUsername);
+                            currentClientSocket.socket.Send(data);
+
+                            //UPDATE STATE - Send data to client to change its state to 'Chatting'
+                            data = Encoding.ASCII.GetBytes("!changestate 1");
+                            currentClientSocket.socket.Send(data);
+
+                            //? fucks up here and closes the client/doesn't send or execute???
+                            // Notify of success
+                            data = Encoding.ASCII.GetBytes(nl +"<< Success >>" +
+                                                           nl + "Welcome back " + "'" + clientLoginUsername + "'");
+                            currentClientSocket.socket.Send(data);
+
+                            //notify all other clients of arrival
+                            SendToAll(nl + "<< " + currentClientSocket.clientUserName + " has joined the chat >>", currentClientSocket);
+
+                            // final message of usage
+                            data = Encoding.ASCII.GetBytes(nl + "< Type '!commands' to see all available commands >" +
+                                                           nl + "-----------------------------------------------------------");
+                            currentClientSocket.socket.Send(data);
+                            break;
+                        }
+                        else // password mismatch
+                        {
+                            // incorrect password, tell them try again & return
+                            data = Encoding.ASCII.GetBytes("<< Incorrect Password >>" +
+                                                           nl + "...attempt login again using '!login' command...");
+                            currentClientSocket.socket.Send(data);
+                            break;
+                        }
+                    }
+                    //if no user by name exists, Create it
+                    else
+                    {
+                        //USER DOESN'T EXIST (on this row...)
+                        // TRY Create them! (they will be ignored if they already exist in list as Username is flagged as unique)
+                        //? will password not being unique cause problems???
+                        cmd.CommandText = string.Format("INSERT OR IGNORE INTO Users(Username, Password) " +
+                                          "VALUES('{0}','{1}')", clientLoginUsername, clientPassword);
+                        cmd.ExecuteNonQuery(); // execute adding of new user
+
+                        //NOW CHECK IF IT WAS SUCCESSFULLY ADDED
+                        // select table to read from
+                        cmd.CommandText = "SELECT Username, Password " +
+                                                      "FROM Users";
+
+                        //? Pretty sure opening a reader WITHIN a reader won't work, will Test when Initial Login problem solved.
+                        // save it in reader
+                        SQLiteDataReader dataRdr = cmd.ExecuteReader(); // run command for reader
+                        while(dataRdr.Read()) // run through new command executed to find added user
+                        {
+                            if (clientLoginUsername == storedName)
+                            {
+                                //TODO CODE BELOW SAME AS 414 -441. Create a function to call for it.
+                                //set new user name
+                                currentClientSocket.clientUserName = clientLoginUsername;
+                                
+                                // Send data to update display box for client Usernames
+                                data = Encoding.ASCII.GetBytes("!displayusername " + clientLoginUsername);
+                                currentClientSocket.socket.Send(data);
+                                
+                                //TODO Update State message
+                                //Send data to client to change its state to Chatting
+                                data = Encoding.ASCII.GetBytes("!changestate 1");
+                                currentClientSocket.socket.Send(data);
+
+                                //? fucks up here and closes the client/doesn't send or execute??
+                                // change data to represent success
+                               data = Encoding.ASCII.GetBytes(nl + "<< Success >>" +
+                                                               nl + "Welcome to the chat " + "'" + clientLoginUsername + "'");
+                                currentClientSocket.socket.Send(data);
+
+                                //notify all of arrival
+                                SendToAll(nl + "<< " + currentClientSocket.clientUserName + " has joined the chat >>", currentClientSocket);
+
+                                // final message of usage
+                                data = Encoding.ASCII.GetBytes(nl + "< Type '!commands' to see all available commands >" +
+                                                               nl + "-----------------------------------------------------------");
+                                currentClientSocket.socket.Send(data);
+                                dataRdr.Close();
+                                break; // we're done here
+                            }
+                            //Else do nothing at all!
+                        }
+                    }
+                }
+
+                rdr.Close(); // close reader
+                connection.Close(); // close up DB
+                #region old stuff from A2
+                //byte[] data = Encoding.ASCII.GetBytes(" "); // create empty byte array
+                //bool getKicked = false;
+
+                ////set username------
+                //// run through connected users
+                //for (int i = 0; i < clientSockets.Count; ++i)
+                //{
+                //    // if the name is taken
+                //    if (clientSockets[i].clientUserName == clientLoginUsername)
+                //    {
+                //        // tell them it's been taken
+                //        data = Encoding.ASCII.GetBytes(nl + "!!! Username: " + clientLoginUsername + " is already taken !!!" +
+                //                                       nl + "<< Disconnecting User >>");
+                //        currentClientSocket.socket.Send(data); // send it back
+                //
+                //        // boot them
+                //        getKicked = true;
+                //        break;
+                //
+                //    }
+                //    else if (clientSockets[i].clientUserName == null) // No username by that name. SUCCESS!
+                //    {
+                //        currentClientSocket.clientUserName = clientLoginUsername;
+                //
+                //        // Send data to update display box for client Usernames
+                //        data = Encoding.ASCII.GetBytes("!displayusername " + clientLoginUsername);
+                //        currentClientSocket.socket.Send(data);
+                //
+                //        //TODO Update State message send here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                //        //Send data to client to change its state to Chatting
+                //        data = Encoding.ASCII.GetBytes("!changestate 1");
+                //        currentClientSocket.socket.Send(data);
+                //
+                //
+                //        // change data to represent success
+                //        data = Encoding.ASCII.GetBytes(nl + "<< Success >>" +
+                //                                       nl + "Your New Username: " + clientLoginUsername + nl +
+                //                                       nl + "Welcome to chat " + "'" + clientLoginUsername + "'");
+                //    }
+                //}
+
+                //// Notify
+                //if (getKicked)
+                //{
+                //    data = Encoding.ASCII.GetBytes("!forcedkick"); // command for client to get disconnect 
+                //    currentClientSocket.socket.Send(data); // send it back
+                //    clientSockets.Remove(currentClientSocket);
+                //    getKicked = false; // reset bool
+                //    return; // bail early
+                //}
+                //else
+                //{
+                //currentClientSocket.socket.Send(data); // send it back
+                // notify all you're here!
+                //}
+                #endregion
+            }
             else if (text.ToLower() == "!user")
             {
                 byte[] data = Encoding.ASCII.GetBytes(" "); // create empty byte array
