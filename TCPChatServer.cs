@@ -32,6 +32,7 @@ namespace NDS_Networking_Project
         public string privateMsgSender = "";
         public string privateMessage = "";
         public bool isPrivateMessage = false;
+        public string board = "---------"; // default board string
 
         //Helper creator function
         public static TCPChatServer CreateInstance(int port, TextBox chatTextBox, PictureBox logo, TextBox usernameTextBox)
@@ -85,7 +86,6 @@ namespace NDS_Networking_Project
             chatTextBox.Text += "<< Database Initialization Complete >>" + nl;
             connection.Close(); //close DB and save
         }
-
 
         // to close/diconnect all sockets at end of program
         public void CloseAllSockets()
@@ -175,6 +175,9 @@ namespace NDS_Networking_Project
             string changeNameUserName = "";
             string magicQuestion = "";
             string userToKick = "";
+            //bool player1Turn = true;
+            string boardIndex = "";
+            string board = "---------"; // default board string
 
             //Check for text specific commands from clients and adjust data accordingly below -----------
             if (text.Contains("!login ")) // setting username & password
@@ -237,6 +240,13 @@ namespace NDS_Networking_Project
                 if(subStrings.Length == 3) // check if username is 2 words
                     userToKick = subStrings[1] + " " + subStrings[2];
                 text = subStrings[0]; // concatonate string to trigger command
+            }
+            else if (text.Contains("!move "))
+            {
+                string[] subStrings = text.Split(' ');
+
+                boardIndex = subStrings[1];
+                text = subStrings[0];
             }
 
             // Text specific command actions -------------------------------------------------------------
@@ -369,7 +379,7 @@ namespace NDS_Networking_Project
                 privateMsgReceiver = "";
                 privateMessage = "";
             }
-            else if (text.ToLower() == "!login") //TODO CHANGE THIS FUNCTION to check for Username and password withing database
+            else if (text.ToLower() == "!login")
             {
                 //Open DB
                 string connectionString = "Data Source=TCPChatDB.db"; // find and open db
@@ -620,13 +630,140 @@ namespace NDS_Networking_Project
             }
             else if(text.ToLower() == "!join") //TODO JOIN TIC TAC TOE
             {
-                // if room in game, set this client as player and alert them
-                //else tell games full
-                //(I.E Loop through clientSockets to find availability!)
+                bool player1Free = true;
+                bool player2Free = true;
+
+                //Loop through clientSockets to find availability in game!
+                for (int i = 0; i < clientSockets.Count; ++i)
+                {
+                    // if player one spot is taken
+                    if (clientSockets[i].player == ClientSocket.Player.P1)
+                    {
+                        // move in
+                        player1Free = false;
+                    }
+                    else if (clientSockets[i].player == ClientSocket.Player.P2)
+                    {
+                        // move on
+                        player2Free = false;
+                    }
+                }
+
+                if(player1Free & player2Free) // first to join. you'll be x's (go first)
+                {
+                    //set own player state to player 1
+                    currentClientSocket.player = ClientSocket.Player.P1;
+                    // set client isTurn to true
+                    currentClientSocket.isTurn = true;
+
+                    //alert client
+                    byte[] data = Encoding.ASCII.GetBytes("!player1");
+                    currentClientSocket.socket.Send(data);
+                }
+                else if(player2Free)
+                {
+                    //set own player state to player 2
+                    currentClientSocket.player = ClientSocket.Player.P2;
+                    // set client isTurn to true
+                    currentClientSocket.isTurn = false;
+
+                    //alert client
+                    byte[] data = Encoding.ASCII.GetBytes("!player2");
+                    currentClientSocket.socket.Send(data);
+                }
+                else //game is full
+                {
+                    //keep current state to Not Playing
+                    currentClientSocket.player = ClientSocket.Player.NotPlaying;
+                    // notify client that the game is full
+                    byte[] data = Encoding.ASCII.GetBytes("!gamefull");
+                    currentClientSocket.socket.Send(data);
+                }
             }
             else if (text.ToLower() == "!move") //TODO Move TIC TAC TOE ??
             {
-                // this will get sent from selecting a squre button?
+                int index = Int32.Parse(boardIndex);
+
+                //update board string
+                board = board.Insert(index, "x"); // insert symbol at location
+                board = board.Remove(index + 1, 1); // remove previous symbol, which has now been pushed along
+
+                //TODO IS THIS WORKING? What does this even do?
+                //update the game grid
+                ticTacToe.StringToGrid(board);
+
+                //create gameboard string to send to clients
+                string gameboard = ticTacToe.GridToString();
+                byte[] boardData = Encoding.ASCII.GetBytes("!updateboard " + gameboard);
+                currentClientSocket.socket.Send(boardData);
+
+                //TODO WHAT IS THIS SHIT?? 
+                //update server game board
+                for (int i = 0; i < 9; i++)
+                {
+                    char[] position = board.ToCharArray();
+                    TileType tile = new TileType();
+
+                    if (position[i] == 'x')
+                        tile = TileType.Cross;
+                    else if (position[i] == '0')
+                        tile = TileType.Naught;
+                    else if (position[i] == '-')
+                        tile = TileType.Blank;
+
+                    ticTacToe.SetTile(i, tile); //TODO how do I update ANY gameboard outside of the chatwindow.cs?????????
+                }
+
+                //TODO tells client what board now looks like (sends data to update clients gameboards)
+
+                //tells whoevers turn it is that it is their go
+                for(int i = 0; i < clientSockets.Count; i ++)
+                {
+                    // check if they are player 2 & they haven't just had their turn
+                    if(clientSockets[i].player == ClientSocket.Player.P2 &&
+                       clientSockets[i].isTurn == false)
+                    {
+                        // set their go.
+                        clientSockets[i].isTurn = true;
+                        byte[] data = Encoding.ASCII.GetBytes("!updateturn");
+                        clientSockets[i].socket.Send(data);
+
+                        //run through clients to find player 1
+                        for (int j = 0; j < clientSockets.Count; j++)
+                        {
+                            //set player one justHadTurn bool back to false!
+                            if (clientSockets[j].player == ClientSocket.Player.P1)
+                            {
+                                //clientSockets[j].justHadTurn = true;
+                                clientSockets[j].isTurn = false;
+                                //byte[] data1 = Encoding.ASCII.GetBytes("!demoteturn");
+                                //clientSockets[i].socket.Send(data1);
+                                break; // leave inner loop, we'eve found P1
+                            }
+                        }
+                        break; // Leave outer loop P2's turn has been updated
+                    } 
+                    else if(clientSockets[i].player == ClientSocket.Player.P1 &&
+                            clientSockets[i].isTurn == false)
+                    {
+                        clientSockets[i].isTurn = true;
+                        byte[] data = Encoding.ASCII.GetBytes("!updateturn");
+                        clientSockets[i].socket.Send(data);
+
+                        //run through clients to find player 1
+                        for (int j = 0; j < clientSockets.Count; j++)
+                        {
+                            //set player one justHadTurn bool back to false!
+                            if (clientSockets[j].player == ClientSocket.Player.P2)
+                            {
+                                //clientSockets[j].justHadTurn = true;
+                                clientSockets[j].isTurn = false;
+                                break; // leave inner loop, we'eve found P2
+                            }
+                        }
+                        break; // Leave outer loop P1's turn has been updated
+                    }
+                }
             }
             else if (text.ToLower() == "!scores") //TODO display Scores for TIC TAC TOE from DB
             {

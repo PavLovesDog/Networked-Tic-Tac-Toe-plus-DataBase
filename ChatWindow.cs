@@ -40,7 +40,7 @@ namespace NDS_Networking_Project
 
                     server.SetupServer();
                     //TODO Reference Tic Tac Toe board here
-                    //server.ticTacToe =
+                    server.ticTacToe = ticTacToe;
 
                     // Indent Icon for connectivity
                     LogoPicBox.BorderStyle = BorderStyle.Fixed3D;
@@ -297,19 +297,27 @@ namespace NDS_Networking_Project
 
         private void AttemptMove(int index)
         {
-            if(ticTacToe.myTurn)
+            //if client and is clients turn
+            if(client != null && client.clientSocket.isTurn)
             {
+                // set tile type for each player
+                if (client.clientSocket.player == ClientSocket.Player.P1)
+                    ticTacToe.playerTileType = TileType.Cross;
+                else if (client.clientSocket.player == ClientSocket.Player.P2)
+                    ticTacToe.playerTileType = TileType.Naught;
+
+                // paint the board!
                 bool validMove = ticTacToe.SetTile(index, ticTacToe.playerTileType);
 
                 if(validMove)
                 {
-                    //TODO This shit
+                    // demote their turn rights
+                    client.clientSocket.isTurn = false;
+                    //check bool for server distiguishing whose turn it is next
+                    //client.clientSocket.justHadTurn = true;
+
                     //tell server I did my turn at position 'index'
-                    // ON SERVER SIDE below
-                    //      -server receives,
-                    //      -updates the game board,
-                    //      -tells client what board now looks like (sends data to update clients gameboards)
-                    //      -tells whoevers turn it is that it is their go
+                    client.SendString("!move " + index);
 
                     // ticTacToe.myTurn = false; // gotta wait till your damn turn
                 }

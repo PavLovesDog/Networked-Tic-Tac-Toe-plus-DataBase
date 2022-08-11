@@ -5,7 +5,7 @@ using System.Windows.Forms; // to access UI elements
 
 namespace NDS_Networking_Project
 {
-    public class TCPChatBase
+    public class TCPChatBase : TicTacToe
     {
         // create quick access for new line in textbox, as "\n" doesn't seem to be working...
         public Object nl = Environment.NewLine;

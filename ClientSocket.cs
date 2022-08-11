@@ -29,6 +29,7 @@ namespace NDS_Networking_Project
         public Player player;
         public string clientUserName;
         public bool isTurn;
+        public bool justHadTurn;
         public bool isModerator;
         public bool isConnected;
 

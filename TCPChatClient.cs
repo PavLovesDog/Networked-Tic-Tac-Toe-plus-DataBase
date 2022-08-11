@@ -40,7 +40,9 @@ namespace NDS_Networking_Project
                 tcp.clientUsernameTextBox = clientUsername;
                 tcp.clientSocket.isConnected = true; // bool for connectivity
                 tcp.clientSocket.isModerator = false; // set to false on start up
+                tcp.clientSocket.isTurn = false; // set client turn for ticTacToe to default
                 tcp.clientSocket.state = ClientSocket.State.Login; // set state to Login state upon connection
+                tcp.clientSocket.player = ClientSocket.Player.NotPlaying; // NotPlaying is default
             }
             return tcp;
         }
@@ -120,6 +122,7 @@ namespace NDS_Networking_Project
             string packet3 = "";
             string packet4 = "";
             string currentClientUserName = "";
+            string currentGameBoard = "";
 
             if (text.Contains("!displayusername "))
             {
@@ -143,9 +146,17 @@ namespace NDS_Networking_Project
                           subStrings[17]; 
                 text = subStrings[0];
             }
+            else if (text.Contains("!updateboard "))
+            {
+                string[] subString = text.Split(' ');
+                currentGameBoard = subString[1];
+                text = subString[0];
+            }
+            
 
             // Reaction Commands ---------------------------------------------------------------
             //TODO Other commands
+            //UPDATE BOARD
             //Is player joining game? playing?
             //WHat player client is
             // whose turn it is
@@ -227,6 +238,50 @@ namespace NDS_Networking_Project
                 else if (stateEnum == "2")
                 {
                     clientSocket.state = ClientSocket.State.Playing;
+                }
+            }
+            else if (text.ToLower() == "!player1")
+            {
+                clientSocket.state = ClientSocket.State.Playing;
+                clientSocket.player = ClientSocket.Player.P1;
+                clientSocket.isTurn = true;
+
+                AddToChat(nl + "Let's play Tic Tac Toe!" + nl + "You are: PLAYER 1 (X's)");
+            }
+            else if (text.ToLower() == "!player2")
+            {
+                clientSocket.state = ClientSocket.State.Playing;
+                clientSocket.player = ClientSocket.Player.P2;
+                clientSocket.isTurn = false;
+
+                AddToChat(nl + "Let's play Tic Tac Toe!" + nl + "You are: PLAYER 2 (O's)");
+            }
+            else if(text.ToLower() == "!gamefull")
+            {
+                AddToChat(nl + "< Game Full >" + nl + "..Wait until next round, peasant...");
+            }
+            else if (text.ToLower() == "!updateturn")
+            {
+                clientSocket.isTurn = true;
+            }
+            else if(text.ToLower() == "!updateboard")
+            {
+                //TODO UPDATING GAME BOARD, NOT WORKING
+                //update server game board??
+                for (int i = 0; i < 9; i++)
+                {
+                    // break string down to read seperate chars
+                    char[] position = currentGameBoard.ToCharArray();
+                    TileType tile = new TileType();
+                    
+                    if (position[i] == 'x')
+                        tile = TileType.Cross;
+                    else if (position[i] == '0')
+                        tile = TileType.Naught;
+                    else if (position[i] == '-')
+                        tile = TileType.Blank;
+
+                    SetTile(i, tile);
                 }
             }
             else // regular chat message!
