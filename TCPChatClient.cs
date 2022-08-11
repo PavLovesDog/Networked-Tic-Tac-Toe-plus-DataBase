@@ -73,7 +73,6 @@ namespace NDS_Networking_Project
                 }
             }
 
-            //AddToChat("<< Connected >>");
             AddToChat(nl + "<< Connected >>" + nl + "...ready to receive data..." +
                       nl + nl + "-----------------------------------------------------------------------" +
                       nl + "< Please enter your Username & Password using the '!login' command >" +
@@ -115,25 +114,43 @@ namespace NDS_Networking_Project
             //convert received byte data into string
             string text = Encoding.ASCII.GetString(recBuf);
 
-            // Store username data for display
+            // ammend strings accordingly for commands
             string tempUserName = "";
             string stateEnum = "";
+            string packet3 = "";
+            string packet4 = "";
+            string currentClientUserName = "";
+
             if (text.Contains("!displayusername "))
             {
                 // create string to hold the username data
                 tempUserName = text.Remove(0, 17);
                 text = text.Remove(16, text.Length - 16);
             }
-            else if(text.Contains("!changestate ")) //TODO CHANGE STATE COMMAND AMMENDENT
+            //NOTE belows check handles 2-3 packets of data that got mixed up together
+            else if (text.Contains("!changestate ")) 
             {
                 // seperate string data and assign correctly
                 string[] subStrings = text.Split(' ');
-                
-                stateEnum = subStrings[1].Remove(1);
+
+                // Assign Strings from byte[] received.
+                stateEnum = subStrings[1];
+                packet3 = subStrings[2]; // this contains "!success" command
+                currentClientUserName = subStrings[4];
+                // below contains command string message
+                packet4 = subStrings[9].Replace(">>\r\n", "") + " " + subStrings[10] + " " + subStrings[11] + " " + subStrings[12] + " " +
+                          subStrings[13] + " " + subStrings[14] + " " + subStrings[15] + " " + subStrings[16] + " " +
+                          subStrings[17]; 
                 text = subStrings[0];
             }
 
-            // Reaction Commands --------------------------------------------------------
+            // Reaction Commands ---------------------------------------------------------------
+            //TODO Other commands
+            //Is player joining game? playing?
+            //WHat player client is
+            // whose turn it is
+            //gameover?? - reset to chatting phase
+
             if(text.ToLower() == "!exit")
             {
                 // Reset icon Identation
@@ -187,7 +204,25 @@ namespace NDS_Networking_Project
                 }
                 else if(stateEnum == "1")
                 {
+                    //Update state!
                     clientSocket.state = ClientSocket.State.Chatting;
+                    
+                    // Send Login Success Message and Display State
+                    if (packet3 == "!success")
+                    {
+                        AddToChat(nl + "<< Login Success >>" +
+                                    nl + nl + "Welcome back " + "'" + currentClientUserName + "'" + nl
+                                    + "Current State: " + clientSocket.state.ToString());
+                    }
+                    else if (packet3 == "!success2")
+                    {
+                        AddToChat(nl + "<< User Created Success >>" +
+                                    nl + nl + "Welcome " + "'" + currentClientUserName + "'" + nl
+                                    + "Current State: " + clientSocket.state.ToString());
+                    }
+
+                    // Notify client of other commands available
+                    AddToChat(nl + packet4);
                 }
                 else if (stateEnum == "2")
                 {
@@ -198,7 +233,8 @@ namespace NDS_Networking_Project
             {
                 AddToChat(text);
             }
-            // -------------------------------------------------------- Reaction Commands
+
+            // ----------------------------------------------------------------------------- Reaction Commands
 
             //start thread for receeiving data from the server
             currentClientSocket.socket.BeginReceive(currentClientSocket.buffer,

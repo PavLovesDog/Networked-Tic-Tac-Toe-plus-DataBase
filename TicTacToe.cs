@@ -34,6 +34,22 @@ namespace NDS_Networking_Project
         {
             string s = "";
             //TODO convert grid array to string perhaps someeitng Like this e.g "-xo--o-x-" (0,1,2,3,4,5,6,7,8)
+            for(int i = 0; i < grid.Length; i++)
+            {
+                if(grid[i] == TileType.Cross)
+                {
+                    s += grid[i].ToString(); //?
+                    //s += "x"; 
+                }
+                else if(grid[i] == TileType.Naught)
+                {
+                    s += grid[i].ToString();
+                }
+                else if(grid[i] == TileType.Blank)
+                {
+                    s += grid[i].ToString();
+                }
+            }
 
             return s;
         }

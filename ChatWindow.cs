@@ -39,6 +39,8 @@ namespace NDS_Networking_Project
                     }
 
                     server.SetupServer();
+                    //TODO Reference Tic Tac Toe board here
+                    //server.ticTacToe =
 
                     // Indent Icon for connectivity
                     LogoPicBox.BorderStyle = BorderStyle.Fixed3D;
@@ -75,6 +77,7 @@ namespace NDS_Networking_Project
                         throw new Exception("<< Incorrect Port Value >>");
                     }
 
+                    //client.clientSocket.state =
                     client.ConnectToServer();
 
                     // Indent Icon for connectivity
@@ -316,25 +319,34 @@ namespace NDS_Networking_Project
                 }
 
                 //TODO Client Side Prediction..
-                // move this to server side as each client shouldn't be doing it..(maybe) this is for testing
+                //TODO move this to server side as each client shouldn't be doing it..(maybe) this is for testing
                 GameState gs = ticTacToe.GetGameState();
                 if(gs == GameState.CrossWins)
                 {
                     ChatTextBox.AppendText("X Wins!");
                     ChatTextBox.AppendText(Environment.NewLine);
                     ticTacToe.ResetBoard();
+                    //TELL all to RESET boards
+                    //RESET all players back to Chatting state
+                    // other clean up...
                 } 
                 else if (gs == GameState.NaughtWins)
                 {
                     ChatTextBox.AppendText("O Wins!");
                     ChatTextBox.AppendText(Environment.NewLine);
                     ticTacToe.ResetBoard();
+                    //TELL all to RESET boards
+                    //RESET all players back to Chatting state
+                    // other clean up...
                 }
                 else if (gs == GameState.Draw)
                 {
                     ChatTextBox.AppendText("Draw! ...No Winners...");
                     ChatTextBox.AppendText(Environment.NewLine);
                     ticTacToe.ResetBoard();
+                    //TELL all to RESET boards
+                    //RESET all players back to Chatting state
+                    // other clean up...
                 }
             }
         }
