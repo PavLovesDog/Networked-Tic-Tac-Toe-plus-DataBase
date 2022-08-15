@@ -266,22 +266,36 @@ namespace NDS_Networking_Project
             }
             else if(text.ToLower() == "!updateboard")
             {
-                //TODO UPDATING GAME BOARD, NOT WORKING
-                //update server game board??
-                for (int i = 0; i < 9; i++)
+                //TODO UPDATING GAME BOARD, NOT WORKING??
+                //update client game board
+                for (int i = 0; i < grid.Length; i++)
                 {
                     // break string down to read seperate chars
                     char[] position = currentGameBoard.ToCharArray();
                     TileType tile = new TileType();
                     
                     if (position[i] == 'x')
+                    {
                         tile = TileType.Cross;
+                        //TODO Invoke or not, the buttons list is STILL empty...
+                        buttons[i].Invoke((Action)delegate
+                        {
+                            buttons[i].Text = TileTypeToString(TileType.Cross);
+                        });
+                    }
                     else if (position[i] == '0')
+                    {
                         tile = TileType.Naught;
+                        buttons[i].Text = TileTypeToString(TileType.Naught);
+                    }
                     else if (position[i] == '-')
+                    {
                         tile = TileType.Blank;
+                        buttons[i].Text = TileTypeToString(TileType.Blank);
+                    }
 
-                    SetTile(i, tile);
+                    //TODO This will be the button change call when the list empty issue is solved..
+                    //SetTile(i, tile);
                 }
             }
             else // regular chat message!

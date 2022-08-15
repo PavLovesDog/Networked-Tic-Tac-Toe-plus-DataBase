@@ -8,17 +8,10 @@ using System.Data.SQLite; // Using statement for SQL nuget package
 
 namespace NDS_Networking_Project
 {
-    /* 
-     * the ":" symbol means this class inherits from the class named after it
-     * in this case TCPChatServer inherits from TCPChatBase, meaning that 
-     * TCPChatServer will have access to everything TCPChateBase has in it.
-     */
-
     public class TCPChatServer : TCPChatBase
     {
         public static ChatWindow window = new ChatWindow();
 
-        // Socket to represent the server itself
         public Socket serverSocket = new Socket(AddressFamily.InterNetwork, 
                                                 SocketType.Stream, 
                                                 ProtocolType.Tcp);
@@ -56,14 +49,10 @@ namespace NDS_Networking_Project
 
         public void SetupServer()
         {
-            chatTextBox.Text += "...setting up server..." + nl; // notify text box
-
-            //bind socket to listen on (listen on what port for incoming messages?)
+            chatTextBox.Text += "...setting up server..." + nl;
             serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
-            serverSocket.Listen(0); // listening for incoming connections/messages
-
-            //start thread to read connecting clients, when connection happens, use AcceptCallBack function to deal with it
-            serverSocket.BeginAccept(AcceptCallBack, this); // BeginAccept makes a thread, an asyncronus activity (if there are multiple, they work at their OWN pace)
+            serverSocket.Listen(0);
+            serverSocket.BeginAccept(AcceptCallBack, this);
             chatTextBox.Text += "<< Server Setup Complete >>" + nl;
 
             //TODO Open DB Here
@@ -90,32 +79,29 @@ namespace NDS_Networking_Project
         // to close/diconnect all sockets at end of program
         public void CloseAllSockets()
         {
-            // reference all ClientSockets in clientSockets LIST
             foreach(ClientSocket clientSocket in clientSockets)
             {
                 clientSocket.socket.Shutdown(SocketShutdown.Both);
                 clientSocket.socket.Close();
             }
-            clientSockets.Clear(); // empty list
-            serverSocket.Close(); // shut down its own socket
+            clientSockets.Clear();
+            serverSocket.Close();
         }
 
         // callback called when a client joins the server
         public void AcceptCallBack(IAsyncResult AR)
         {
-            //create socket
             Socket joiningSocket;
 
             // when client join, try get socket data of client (Port & IP info) 
             try
             {
-                //retrieve socket info from connection join event
                 joiningSocket = serverSocket.EndAccept(AR);
             }
             catch(ObjectDisposedException)
             {
                 chatTextBox.Text += "...Client Join Failed...";
-                return; // bail on error...
+                return;
             }
 
             // build wrapper arond client who just joined
@@ -142,29 +128,25 @@ namespace NDS_Networking_Project
         // this function calls anytime data comes in from a client
         public void ReceiveCallBack(IAsyncResult AR)
         {
-            // get ClientSocket object from 'IAsyncResult AR' so we can deal with individual client data
-            ClientSocket currentClientSocket = (ClientSocket)AR.AsyncState; // cast 'AR.AsyncState' as '(ClientSocket)' to access
-
-            // how many bytes of data received
+            ClientSocket currentClientSocket = (ClientSocket)AR.AsyncState;
             int received;
 
             try
             {
-                received = currentClientSocket.socket.EndReceive(AR); // find byte size
+                received = currentClientSocket.socket.EndReceive(AR);
             }
             catch(Exception ex)
             {
                 AddToChat("Error: " + ex.Message + nl + nl);
                 AddToChat("! Error Occured !" + nl + "<< Client Disconnected >>");
-                currentClientSocket.socket.Close(); // shut it down
-                clientSockets.Remove(currentClientSocket); // remove from list
-                return; // leave function
+                currentClientSocket.socket.Close();
+                clientSockets.Remove(currentClientSocket);
+                return;
             }
 
             //build array ready for data
             byte[] recBuf = new byte[received];
-            Array.Copy(currentClientSocket.buffer, recBuf, received); // copy info into array
-            //convert received byte data into string
+            Array.Copy(currentClientSocket.buffer, recBuf, received);
             string text = Encoding.ASCII.GetString(recBuf);
 
             AddToChat(text);
@@ -175,7 +157,6 @@ namespace NDS_Networking_Project
             string changeNameUserName = "";
             string magicQuestion = "";
             string userToKick = "";
-            //bool player1Turn = true;
             string boardIndex = "";
             string board = "---------"; // default board string
 
@@ -208,9 +189,8 @@ namespace NDS_Networking_Project
             }
             else if (text.Contains("!whisper ")) // private messaging
             {
-                // split up and grab necessary strings
                 string[] subStrings = text.Split(' ');
-                privateMsgReceiver = subStrings[1]; // name of client receiving message
+                privateMsgReceiver = subStrings[1];
 
                 //loop through users to check for double names
                 for (int i = 0; i < clientSockets.Count; ++i)
@@ -655,6 +635,8 @@ namespace NDS_Networking_Project
                     currentClientSocket.player = ClientSocket.Player.P1;
                     // set client isTurn to true
                     currentClientSocket.isTurn = true;
+                    //update state
+                    currentClientSocket.state = ClientSocket.State.Playing;
 
                     //alert client
                     byte[] data = Encoding.ASCII.GetBytes("!player1");
@@ -666,6 +648,8 @@ namespace NDS_Networking_Project
                     currentClientSocket.player = ClientSocket.Player.P2;
                     // set client isTurn to true
                     currentClientSocket.isTurn = false;
+                    //update state
+                    currentClientSocket.state = ClientSocket.State.Playing;
 
                     //alert client
                     byte[] data = Encoding.ASCII.GetBytes("!player2");
@@ -682,9 +666,40 @@ namespace NDS_Networking_Project
             }
             else if (text.ToLower() == "!move") //TODO Move TIC TAC TOE ??
             {
-                int index = Int32.Parse(boardIndex);
+                //Check gamestate
+                {
+                    GameState gs = ticTacToe.GetGameState();
+                    if (gs == GameState.CrossWins)
+                    {
+                        //ChatTextBox.AppendText("X Wins!");
+                        //ChatTextBox.AppendText(Environment.NewLine);
+                        ticTacToe.ResetBoard();
+                        //TELL all to RESET boards
+                        //RESET all players back to Chatting state
+                        // other clean up...
+                    }
+                    else if (gs == GameState.NaughtWins)
+                    {
+                        //ChatTextBox.AppendText("O Wins!");
+                        //ChatTextBox.AppendText(Environment.NewLine);
+                        ticTacToe.ResetBoard();
+                        //TELL all to RESET boards
+                        //RESET all players back to Chatting state
+                        // other clean up...
+                    }
+                    else if (gs == GameState.Draw)
+                    {
+                        //ChatTextBox.AppendText("Draw! ...No Winners...");
+                        //ChatTextBox.AppendText(Environment.NewLine);
+                        ticTacToe.ResetBoard();
+                        //TELL all to RESET boards
+                        //RESET all players back to Chatting state
+                        // other clean up...
+                    }
+                }
 
                 //update board string
+                int index = Int32.Parse(boardIndex);
                 board = board.Insert(index, "x"); // insert symbol at location
                 board = board.Remove(index + 1, 1); // remove previous symbol, which has now been pushed along
 
@@ -699,17 +714,26 @@ namespace NDS_Networking_Project
 
                 //TODO WHAT IS THIS SHIT?? 
                 //update server game board
-                for (int i = 0; i < 9; i++)
+                for (int i = 0; i < buttons.Count; i++)
                 {
                     char[] position = board.ToCharArray();
                     TileType tile = new TileType();
 
                     if (position[i] == 'x')
+                    {
                         tile = TileType.Cross;
+                        //buttons[i].Text = "X";
+                    }
                     else if (position[i] == '0')
+                    {
                         tile = TileType.Naught;
+                        //buttons[i].Text = "O";
+                    }
                     else if (position[i] == '-')
+                    {
                         tile = TileType.Blank;
+                        //buttons[i].Text = "";
+                    }
 
                     ticTacToe.SetTile(i, tile); //TODO how do I update ANY gameboard outside of the chatwindow.cs?????????
                 }
