@@ -28,7 +28,7 @@ namespace NDS_Networking_Project
         public string board = "---------"; // default board string
 
         //Helper creator function
-        public static TCPChatServer CreateInstance(int port, TextBox chatTextBox, PictureBox logo, TextBox usernameTextBox)
+        public static TCPChatServer CreateInstance(int port, TextBox chatTextBox, PictureBox logo, TextBox usernameTextBox, Label playerTurnLabel)
         {
             TCPChatServer tcp = null; // set to null, if it returns null, user did something wrong
 
@@ -41,6 +41,7 @@ namespace NDS_Networking_Project
                 tcp.chatTextBox = chatTextBox;
                 tcp.logoPicBox = logo;
                 tcp.clientUsernameTextBox = usernameTextBox;
+                tcp.playerTurnLabel = playerTurnLabel;
             }
 
             //retunr as null OR built server
@@ -91,9 +92,7 @@ namespace NDS_Networking_Project
         // callback called when a client joins the server
         public void AcceptCallBack(IAsyncResult AR)
         {
-            Socket joiningSocket;
-
-            // when client join, try get socket data of client (Port & IP info) 
+            Socket joiningSocket; 
             try
             {
                 joiningSocket = serverSocket.EndAccept(AR);
@@ -104,24 +103,19 @@ namespace NDS_Networking_Project
                 return;
             }
 
-            // build wrapper arond client who just joined
             ClientSocket newClientSocket = new ClientSocket();
             newClientSocket.socket = joiningSocket;
 
-            clientSockets.Add(newClientSocket); // add new client socket to list
+            clientSockets.Add(newClientSocket);
 
-            //start a thread so we can send and receive data between us and the new client
-            joiningSocket.BeginReceive(newClientSocket.buffer,    // add buffer
-                                       0,                         // set socket flags, if needed
-                                       ClientSocket.BUFFER_SIZE,  // how big chunks of data can be
-                                       SocketFlags.None,          // add flags, if any
-                                       ReceiveCallBack,           // function to call when data comes in
-                                       newClientSocket);          // object associated with this socket
+            joiningSocket.BeginReceive(newClientSocket.buffer,    
+                                       0,                         
+                                       ClientSocket.BUFFER_SIZE,  
+                                       SocketFlags.None,          
+                                       ReceiveCallBack,           
+                                       newClientSocket);          
 
-            // notify text box
             AddToChat(nl + "<< Client Connected >>"); 
-
-            // This wait for new client thread done, so start another thread to get a new client :)
             serverSocket.BeginAccept(AcceptCallBack, null);
         }
 
@@ -144,7 +138,6 @@ namespace NDS_Networking_Project
                 return;
             }
 
-            //build array ready for data
             byte[] recBuf = new byte[received];
             Array.Copy(currentClientSocket.buffer, recBuf, received);
             string text = Encoding.ASCII.GetString(recBuf);
@@ -157,8 +150,9 @@ namespace NDS_Networking_Project
             string changeNameUserName = "";
             string magicQuestion = "";
             string userToKick = "";
+            string playerSymbol = "";
             string boardIndex = "";
-            string board = "---------"; // default board string
+            //string board = "---------"; // default board string
 
             //Check for text specific commands from clients and adjust data accordingly below -----------
             if (text.Contains("!login ")) // setting username & password
@@ -192,39 +186,39 @@ namespace NDS_Networking_Project
                 string[] subStrings = text.Split(' ');
                 privateMsgReceiver = subStrings[1];
 
-                //loop through users to check for double names
                 for (int i = 0; i < clientSockets.Count; ++i)
                 {
                     if (subStrings[1] + " " + subStrings[2] == clientSockets[i].clientUserName)
                         privateMsgReceiver = subStrings[1] + " " + subStrings[2];
                 }
 
-                int messageIndex = (9 + privateMsgReceiver.Length); // find index of start of message
-                privateMessage = text.Substring(messageIndex, (text.Length - messageIndex)); // store it
+                int messageIndex = (9 + privateMsgReceiver.Length);
+                privateMessage = text.Substring(messageIndex, (text.Length - messageIndex));
 
-                text = subStrings[0]; // revert text to command only
+                text = subStrings[0];
             }
             else if(text.Contains("!magic "))
             {
                 string[] subStrings = text.Split(' ');
 
                 int messageIndex = (7 + privateMsgReceiver.Length);
-                magicQuestion = text.Substring(messageIndex, (text.Length - messageIndex)); // store question
+                magicQuestion = text.Substring(messageIndex, (text.Length - messageIndex));
 
-                text = subStrings[0]; // revert text to command only
+                text = subStrings[0];
             }
             else if(text.Contains("!kick "))
             {
                 string[] subStrings = text.Split(' ');
-                userToKick = subStrings[1]; // assign name
-                if(subStrings.Length == 3) // check if username is 2 words
+                userToKick = subStrings[1];
+                if(subStrings.Length == 3)
                     userToKick = subStrings[1] + " " + subStrings[2];
-                text = subStrings[0]; // concatonate string to trigger command
+                text = subStrings[0];
             }
             else if (text.Contains("!move "))
             {
                 string[] subStrings = text.Split(' ');
 
+                playerSymbol = subStrings[2];
                 boardIndex = subStrings[1];
                 text = subStrings[0];
             }
@@ -242,16 +236,15 @@ namespace NDS_Networking_Project
                                                       nl + "!magic [question]   --> ask the Magic-8-Ball a question, reap its wisdom" +
                                                       nl + "!kick [username]   --> kick selected user from the chat <<MODERATORS ONLY>>" +
                                                       nl + "!exit   --> disconnect from the server");
-                currentClientSocket.socket.Send(data); // send straight back to person who sent in data
+                currentClientSocket.socket.Send(data);
                 data = Encoding.ASCII.GetBytes(nl + "-----------------------------------------------------------");
                 currentClientSocket.socket.Send(data);
                 AddToChat("\n...commands sent to client...");
             }
             else if (text.ToLower() == "!about")
             {
-                string IP = currentClientSocket.socket.LocalEndPoint.ToString(); // LOCAL is the server host
+                string IP = currentClientSocket.socket.LocalEndPoint.ToString();
 
-                //Append strings
                 string[] sub = IP.Split(":");
                 string appendedPort = IP.Replace(sub[0] + ":", "");
                 string appendedIP = IP.Replace(":" + sub[1], "");
@@ -263,29 +256,23 @@ namespace NDS_Networking_Project
                                                       nl + nl + "Netwoes INC. Copyright (c) All Rights Reserved, TM (2022)");
                 currentClientSocket.socket.Send(data);
 
-                //create nice border for chat window
                 data = Encoding.ASCII.GetBytes(nl + "-----------------------------------------------------------");
                 currentClientSocket.socket.Send(data);
 
             }
             else if (text.ToLower() == "!who")
             {
-                //create byte array to store names
                 byte[] data = Encoding.ASCII.GetBytes(nl + "----- Connected Users -----");
                 currentClientSocket.socket.Send(data);
 
                 string names = "";
-
-                // run through connected users, add to string seperated by empty space.
                 for (int i = 0; i < clientSockets.Count; ++i)
                 {
                     names += " " + clientSockets[i].clientUserName;
                 }
 
-                //append string, store seperate names in an array
                 string[] allNames = names.Split(' ');
 
-                //loop through array and send their data to client window!
                 for (int i = 0; i < allNames.Length; ++i)
                 {
                     string temp = allNames[i];
@@ -296,11 +283,9 @@ namespace NDS_Networking_Project
                     else
                     {
                         // Double name check. 
-                        if (i <= allNames.Length - 2) // catch for out of bounds index
+                        if (i <= allNames.Length - 2)
                         {
                             bool doubleName = false;
-
-                            // run through clients
                             for (int j = 0; j < clientSockets.Count; ++j)
                             {
                                 // check if the next 2 names in a row match the client username, to avoid double name seperation
@@ -315,7 +300,7 @@ namespace NDS_Networking_Project
                             {
                                 data = Encoding.ASCII.GetBytes(nl + "User: " + temp + " " + allNames[i + 1]);
                                 currentClientSocket.socket.Send(data);
-                                ++i; // increment i to skip next name because its a part of this one
+                                ++i;
                             }
                             else
                             {
@@ -331,13 +316,13 @@ namespace NDS_Networking_Project
                     }
                 }
                 // if there are no clients
-                if (allNames[0] == "" && allNames[1] == "") // you're all alone here..
+                if (allNames[0] == "" && allNames[1] == "")
                 {
                     data = Encoding.ASCII.GetBytes(nl + "...it's just you here..." +
                                                    nl + " *tumbleweed blows by*");
                     currentClientSocket.socket.Send(data);
                 }
-                //create nice border for chat window
+
                 data = Encoding.ASCII.GetBytes(nl + "-----------------------------------------------------------");
                 currentClientSocket.socket.Send(data);
             }
@@ -346,16 +331,14 @@ namespace NDS_Networking_Project
                 byte[] data = Encoding.ASCII.GetBytes(nl + "<Private Message> " + currentClientSocket.clientUserName +
                                                       ":" + privateMessage);
 
-                // Find client to send message to
                 for (int i = 0; i < clientSockets.Count; ++i)
                 {
                     if (clientSockets[i].clientUserName == privateMsgReceiver)
                     {
-                        clientSockets[i].socket.Send(data); // send to the reciever!
+                        clientSockets[i].socket.Send(data);
                     }
                 }
 
-                //reset strings for other !whisper
                 privateMsgReceiver = "";
                 privateMessage = "";
             }
@@ -664,9 +647,9 @@ namespace NDS_Networking_Project
                     currentClientSocket.socket.Send(data);
                 }
             }
-            else if (text.ToLower() == "!move") //TODO Move TIC TAC TOE ??
+            else if (text.ToLower() == "!move")
             {
-                //Check gamestate
+                //TODO Check gamestate
                 {
                     GameState gs = ticTacToe.GetGameState();
                     if (gs == GameState.CrossWins)
@@ -677,6 +660,12 @@ namespace NDS_Networking_Project
                         //TELL all to RESET boards
                         //RESET all players back to Chatting state
                         // other clean up...
+                        
+                        board = "---------"; // reset board and grid
+                        string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
+                        byte[] resetData = Encoding.ASCII.GetBytes("!updateboard " + resetboard);
+                        currentClientSocket.socket.Send(resetData); // send it to client to reset their boards
+
                     }
                     else if (gs == GameState.NaughtWins)
                     {
@@ -698,23 +687,28 @@ namespace NDS_Networking_Project
                     }
                 }
 
-                //update board string
+                //update board string with new position
                 int index = Int32.Parse(boardIndex);
-                board = board.Insert(index, "x"); // insert symbol at location
+                board = board.Insert(index, playerSymbol); // insert symbol at location
                 board = board.Remove(index + 1, 1); // remove previous symbol, which has now been pushed along
 
-                //TODO IS THIS WORKING? What does this even do?
+                //now string is amended
                 //update the game grid
                 ticTacToe.StringToGrid(board);
 
+                //TODO tells client what board now looks like (sends data to update clients gameboards)
                 //create gameboard string to send to clients
-                string gameboard = ticTacToe.GridToString();
+                string gameboard = ticTacToe.GridToString(); // pull data from tictactoe grid
                 byte[] boardData = Encoding.ASCII.GetBytes("!updateboard " + gameboard);
-                currentClientSocket.socket.Send(boardData);
+                //run through clients and send them game data
+                for(int i = 0; i < clientSockets.Count; i++)
+                {
+                    clientSockets[i].socket.Send(boardData);
+                }
 
-                //TODO WHAT IS THIS SHIT?? 
+                //TODO Display board data
                 //update server game board
-                for (int i = 0; i < buttons.Count; i++)
+                for (int i = 0; i < ticTacToe.grid.Length; i++)
                 {
                     char[] position = board.ToCharArray();
                     TileType tile = new TileType();
@@ -722,23 +716,21 @@ namespace NDS_Networking_Project
                     if (position[i] == 'x')
                     {
                         tile = TileType.Cross;
-                        //buttons[i].Text = "X";
                     }
                     else if (position[i] == '0')
                     {
                         tile = TileType.Naught;
-                        //buttons[i].Text = "O";
                     }
                     else if (position[i] == '-')
                     {
                         tile = TileType.Blank;
-                        //buttons[i].Text = "";
                     }
 
-                    ticTacToe.SetTile(i, tile); //TODO how do I update ANY gameboard outside of the chatwindow.cs?????????
+                    ticTacToe.grid[i] = tile; // set the grid
+                    ticTacToe.SetTile(i, tile); // this call SHOULD paint the server board
+                    UpdateGameBoard(gameboard); // update own board ?
                 }
 
-                //TODO tells client what board now looks like (sends data to update clients gameboards)
 
                 //tells whoevers turn it is that it is their go
                 for(int i = 0; i < clientSockets.Count; i ++)
@@ -758,10 +750,7 @@ namespace NDS_Networking_Project
                             //set player one justHadTurn bool back to false!
                             if (clientSockets[j].player == ClientSocket.Player.P1)
                             {
-                                //clientSockets[j].justHadTurn = true;
                                 clientSockets[j].isTurn = false;
-                                //byte[] data1 = Encoding.ASCII.GetBytes("!demoteturn");
-                                //clientSockets[i].socket.Send(data1);
                                 break; // leave inner loop, we'eve found P1
                             }
                         }
@@ -793,11 +782,9 @@ namespace NDS_Networking_Project
             {
                 // dump all data from users, wins, loses columns to chatbox
             }
-            else if(text.Contains("!deleteDB"))
+            else if (text.Contains("!deleteDB")) // DANGER !! Debug Only...
             {
-                //delete DB
-                //Open DB
-                string connectionString = "Data Source=TCPChatDB.db"; // find and open db
+                string connectionString = "Data Source=TCPChatDB.db";
                 var connection = new SQLiteConnection(connectionString);
                 connection.Open();
                 string sqlCommandText = "DROP TABLE Users";
@@ -806,18 +793,14 @@ namespace NDS_Networking_Project
             }
             else if (text.ToLower() == "!user")
             {
-                byte[] data = Encoding.ASCII.GetBytes(" "); // create empty byte array
-
-                // try change username!
+                byte[] data = Encoding.ASCII.GetBytes(" ");
                 string temp = currentClientSocket.clientUserName;
                 bool canChangeName = false;
 
-                // roll through list
                 for (int i = 0; i < clientSockets.Count; ++i)
                 {
                     if (clientSockets[i].clientUserName != changeNameUserName)
                     {
-                        //change name!
                         canChangeName = true;
                     }
                     else // user already exists
@@ -832,18 +815,16 @@ namespace NDS_Networking_Project
                 if (canChangeName)
                 {
                     currentClientSocket.clientUserName = changeNameUserName;
-                    // Send data to update display box for client Usernames
                     data = Encoding.ASCII.GetBytes("!displayusername " + changeNameUserName);
                     currentClientSocket.socket.Send(data);
 
-                    //Notify others of thy success
                     SendToAll(nl + "..." + temp + " has transformed..." + nl +
                               "They shall now be know as: '" + currentClientSocket.clientUserName + "'" + nl,
                               currentClientSocket);
                 }
                 else
                 {
-                    currentClientSocket.socket.Send(data); // send denial data
+                    currentClientSocket.socket.Send(data);
                 }
 
                 data = Encoding.ASCII.GetBytes(nl + "-----------------------------------------------------------");
@@ -852,17 +833,14 @@ namespace NDS_Networking_Project
             else if (text.ToLower() == "!magic")
             {
                 // User has shaken the Magic 8 Ball and whispered their deepest desires into it glossy black shell...
-                //store answers in array
                 string[] phrases = { "It is certain.", "It is decidedly so.", "Without a doubt.", "Yes, definitely.", "You may rely on it.",
                                      "As I see it, yes.", "Most likely.", "Outlook looks good.", "Yes.", "Signs point to yes.",
                                      "Reply hazy, try again.", "Ask again later.", "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.",
                                      "Don't count on it.", "My reply is no.", "My sources say no.", "Outlook looks bleak.", "Very doubtful.",};
                 
-                // choose a phrase at random,
                 Random rnd = new Random();
                 int index = rnd.Next(0, 19);
 
-                //send the question and answer back to client who asked question (Maybe to all??)
                 byte[] data = Encoding.ASCII.GetBytes(nl + "Your Question --->" + magicQuestion + 
                                                       nl + "My Divine Answer --->" + phrases[index]);
                 //concoct message based on answer
@@ -880,14 +858,14 @@ namespace NDS_Networking_Project
                     messageToAll = nl + currentClientSocket.clientUserName + " has asked the Magic 8 Ball a question!" + nl + "...misfortune befalls them...";
                 }
 
-                SendToAll(messageToAll, currentClientSocket); //Let the chat know of the askers fortunes
-                currentClientSocket.socket.Send(data); // reply to client
+                SendToAll(messageToAll, currentClientSocket);
+                currentClientSocket.socket.Send(data);
                 data = Encoding.ASCII.GetBytes(nl + "-----------------------------------------------------------");
                 currentClientSocket.socket.Send(data);
             }
             else if (text.ToLower() == "!kick")
             {
-                if(currentClientSocket.isModerator == true) // client is moderater and able to kick others!
+                if(currentClientSocket.isModerator == true)
                 {
                     try
                     {
@@ -896,12 +874,11 @@ namespace NDS_Networking_Project
                         {
                             if (userToKick == clientSockets[i].clientUserName)
                             {
-                                // notify all client was kicked!
-                                clientSockets[i].socket.Send(data); // send data to change IDENT of kicked user
+                                clientSockets[i].socket.Send(data);
                                 SendToAll(nl + "<< " + userToKick + " was kicked from the chat by Moderator " + currentClientSocket.clientUserName + " >>", currentClientSocket);
                                 AddToChat("<< Client " + userToKick + " Disconnected by " + currentClientSocket.clientUserName + " >>");
 
-                                clientSockets[i].socket.Shutdown(SocketShutdown.Both); // shutdown server-side for client
+                                clientSockets[i].socket.Shutdown(SocketShutdown.Both);
                                 clientSockets[i].socket.Close();
                                 clientSockets.Remove(clientSockets[i]);
                                 break; // as now the clientSockets.count has been adjusted
@@ -922,12 +899,10 @@ namespace NDS_Networking_Project
             else if (text.ToLower() == "!exit") // client wants to exit gracefully...
             {
                 byte[] data = Encoding.ASCII.GetBytes("!exit");
-                currentClientSocket.socket.Send(data); // send back data to change IDENT
-
-                // notify all they're leaving!
+                currentClientSocket.socket.Send(data);
                 SendToAll(nl + "<< " + currentClientSocket.clientUserName + " has left the chat >>", currentClientSocket);
 
-                currentClientSocket.socket.Shutdown(SocketShutdown.Both); // shutdown server-side for client
+                currentClientSocket.socket.Shutdown(SocketShutdown.Both);
                 currentClientSocket.socket.Close();
                 clientSockets.Remove(currentClientSocket);
                 AddToChat("<< Client Disconnected >>");
@@ -944,8 +919,6 @@ namespace NDS_Networking_Project
                 SendToAll(currentClientSocket.clientUserName + ": " + text, currentClientSocket);
             }
 
-            // now data has been received from this client, the thread is finished...
-            // so start a new thread to receive new data!
             currentClientSocket.socket.BeginReceive(currentClientSocket.buffer,
                                                     0,                         
                                                     ClientSocket.BUFFER_SIZE,  
@@ -958,13 +931,12 @@ namespace NDS_Networking_Project
         // i.e 'from' says "Hello", server broadcasts to the other clients
         public void SendToAll(string str, ClientSocket from)
         {
-            //Send to all clients EXECPT the 'from' client
             foreach(ClientSocket clientSocket in clientSockets)
             {
-                if(from == null || !from.socket.Equals(clientSocket)) // if there is NO from person, also NOT the original sender
+                if(from == null || !from.socket.Equals(clientSocket))
                 {
-                    byte[] data = Encoding.ASCII.GetBytes(str); // convert string to a byte array
-                    clientSocket.socket.Send(data); // then send it
+                    byte[] data = Encoding.ASCII.GetBytes(str);
+                    clientSocket.socket.Send(data);
                 }
             }
         }

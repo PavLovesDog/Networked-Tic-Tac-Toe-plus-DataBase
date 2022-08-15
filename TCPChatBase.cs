@@ -5,15 +5,51 @@ using System.Windows.Forms; // to access UI elements
 
 namespace NDS_Networking_Project
 {
-    public class TCPChatBase : TicTacToe
+    public class TCPChatBase
     {
         // create quick access for new line in textbox, as "\n" doesn't seem to be working...
         public Object nl = Environment.NewLine;
 
+        public List<Button> buttons; // refernece to tictactoe buttons
+        public Label playerTurnLabel;
         public PictureBox logoPicBox;
         public TextBox clientUsernameTextBox;
         public TextBox chatTextBox; // to access main chat text box in app
         public int port; //when listenning for data, need port open
+
+        public void UpdateGameBoard(string s)
+        {
+            char[] position = s.ToCharArray();
+            for (int i = 0; i < 9; ++i)
+            {
+                buttons[i].Invoke((Action)delegate
+                {
+                    if(position[i].ToString() == "-")
+                    {
+                        buttons[i].Text = ""; //empty
+                    }
+                    else
+                    {
+                        buttons[i].Text = position[i].ToString(); // paint the rest
+                    }
+                });
+            }
+        }
+
+        public void updateTurnLabel()
+        {
+            playerTurnLabel.Invoke((Action)delegate
+            {
+                if (playerTurnLabel.Text == "X's Turn...")
+                {
+                    playerTurnLabel.Text = "O's Turn...";
+                }
+                else if (playerTurnLabel.Text == "O's Turn...")
+                {
+                    playerTurnLabel.Text = "X's Turn...";
+                }
+            });
+        }
 
         // Function to control borderstyle of icon
         public void IndentIcon()
@@ -34,14 +70,9 @@ namespace NDS_Networking_Project
         // Functions to help work with the chat text box
         public void SetChat(string str)
         {
-            /* NOTE As chat text box is running in MAIN thread, we need to do the following so it is
-             * accessible from whatever thread this class is running on...
-             * Invoke is to send out a message to the textbox which it will receive and act on */
-
             //Send message from this thread to main thread, update chatTextBox
             chatTextBox.Invoke((Action)delegate 
             {
-                // clear txt box screen, set it to string passed in
                 chatTextBox.Text = str; 
                 chatTextBox.AppendText(Environment.NewLine);
             
@@ -54,7 +85,6 @@ namespace NDS_Networking_Project
 
             chatTextBox.Invoke((Action)delegate
             {
-                // add message to text box screen
                 chatTextBox.AppendText(str); 
                 chatTextBox.AppendText(Environment.NewLine);
             });

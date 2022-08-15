@@ -27,10 +27,14 @@ namespace NDS_Networking_Project
             {
                 try
                 {
-                    // pass in text(as string) from host port text box to try convert to INT
                     int port = int.Parse(HostPortTextBox.Text);
-                    // Below Builds server with REFERENCES to chat box and logo pic for access
-                    server = TCPChatServer.CreateInstance(port, ChatTextBox, LogoPicBox, ClientUsernameTextBox); //try build a TCPChatServer object
+
+                    //build a TCPChatServer object
+                    server = TCPChatServer.CreateInstance(port, 
+                                                          ChatTextBox, 
+                                                          LogoPicBox, 
+                                                          ClientUsernameTextBox, 
+                                                          PlayerTurnLabel); 
                     if(server == null)
                     {
                         // ERRORS!
@@ -67,18 +71,20 @@ namespace NDS_Networking_Project
                     // assigne details to the client connecting
                     client = TCPChatClient.CreateInstance(port, 
                                                           serverPort, 
-                                                          ServerIPTextBox.Text, 
+                                                          ServerIPTextBox.Text,
+                                                          PlayerTurnLabel,
                                                           ChatTextBox,
                                                           LogoPicBox,
-                                                          ClientUsernameTextBox);
+                                                          ClientUsernameTextBox,
+                                                          ticTacToe.buttons);
                     if(client == null)
                     {
                         //assume port issue
                         throw new Exception("<< Incorrect Port Value >>");
                     }
 
-                    //client.clientSocket.state =
                     client.ConnectToServer();
+                    client.ticTacToe = ticTacToe;
 
                     // Indent Icon for connectivity
                     LogoPicBox.BorderStyle = BorderStyle.Fixed3D;
@@ -306,56 +312,62 @@ namespace NDS_Networking_Project
                 else if (client.clientSocket.player == ClientSocket.Player.P2)
                     ticTacToe.playerTileType = TileType.Naught;
 
-                // paint the board!
+                // paint the board
                 bool validMove = ticTacToe.SetTile(index, ticTacToe.playerTileType);
 
                 if(validMove)
                 {
                     // demote their turn rights
                     client.clientSocket.isTurn = false;
+
                     //check bool for server distiguishing whose turn it is next
                     //client.clientSocket.justHadTurn = true;
 
                     //tell server I did my turn at position 'index'
-                    client.SendString("!move " + index);
-
-                    // ticTacToe.myTurn = false; // gotta wait till your damn turn
+                    if(client.clientSocket.player == ClientSocket.Player.P1)
+                    {
+                        client.SendString("!move " + index + " x");
+                    }
+                    else // is player 2 i.e 'O's"
+                    {
+                        client.SendString("!move " + index + " o");
+                    }
                 }
                 else // NOT valid move
                 {
 
                 }
 
-                //TODO Client Side Prediction..
-                //TODO move this to server side as each client shouldn't be doing it..(maybe) this is for testing
-                GameState gs = ticTacToe.GetGameState();
-                if(gs == GameState.CrossWins)
-                {
-                    ChatTextBox.AppendText("X Wins!");
-                    ChatTextBox.AppendText(Environment.NewLine);
-                    ticTacToe.ResetBoard();
-                    //TELL all to RESET boards
-                    //RESET all players back to Chatting state
-                    // other clean up...
-                } 
-                else if (gs == GameState.NaughtWins)
-                {
-                    ChatTextBox.AppendText("O Wins!");
-                    ChatTextBox.AppendText(Environment.NewLine);
-                    ticTacToe.ResetBoard();
-                    //TELL all to RESET boards
-                    //RESET all players back to Chatting state
-                    // other clean up...
-                }
-                else if (gs == GameState.Draw)
-                {
-                    ChatTextBox.AppendText("Draw! ...No Winners...");
-                    ChatTextBox.AppendText(Environment.NewLine);
-                    ticTacToe.ResetBoard();
-                    //TELL all to RESET boards
-                    //RESET all players back to Chatting state
-                    // other clean up...
-                }
+                ////TODO Client Side Prediction..
+                ////TODO move this to server side as each client shouldn't be doing it..(maybe) this is for testing
+                //GameState gs = ticTacToe.GetGameState();
+                //if(gs == GameState.CrossWins)
+                //{
+                //    ChatTextBox.AppendText("X Wins!");
+                //    ChatTextBox.AppendText(Environment.NewLine);
+                //    ticTacToe.ResetBoard();
+                //    //TELL all to RESET boards
+                //    //RESET all players back to Chatting state
+                //    // other clean up...
+                //} 
+                //else if (gs == GameState.NaughtWins)
+                //{
+                //    ChatTextBox.AppendText("O Wins!");
+                //    ChatTextBox.AppendText(Environment.NewLine);
+                //    ticTacToe.ResetBoard();
+                //    //TELL all to RESET boards
+                //    //RESET all players back to Chatting state
+                //    // other clean up...
+                //}
+                //else if (gs == GameState.Draw)
+                //{
+                //    ChatTextBox.AppendText("Draw! ...No Winners...");
+                //    ChatTextBox.AppendText(Environment.NewLine);
+                //    ticTacToe.ResetBoard();
+                //    //TELL all to RESET boards
+                //    //RESET all players back to Chatting state
+                //    // other clean up...
+                //}
             }
         }
 

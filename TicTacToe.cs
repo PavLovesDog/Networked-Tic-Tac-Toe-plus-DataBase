@@ -23,9 +23,7 @@ namespace NDS_Networking_Project
     public class TicTacToe
     {
         //TODO have server dictate whose turn it is and which tile types all clients are (blank for none players)
-        //public bool myTurn = true; //TODO defualt to false, let server decide!
-        public TileType playerTileType; // represents whos playing on THIS end, Cross is default
-                                        //TODO Default SHOULD be Blank, as not all chatting peeps are players
+        public TileType playerTileType;
         public List<Button> buttons = new List<Button>(); // assuming 9 buttons for game grid
         public TileType[] grid = new TileType[9]; // represents how board looks (i.e state of gameboard)
 
@@ -44,7 +42,7 @@ namespace NDS_Networking_Project
                 else if(grid[i] == TileType.Naught)
                 {
                     //s += grid[i].ToString();
-                    s += "0";
+                    s += "o";
                 }
                 else if(grid[i] == TileType.Blank)
                 {
