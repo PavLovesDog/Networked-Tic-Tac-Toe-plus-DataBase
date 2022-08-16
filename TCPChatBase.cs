@@ -17,7 +17,8 @@ namespace NDS_Networking_Project
         public TextBox chatTextBox; // to access main chat text box in app
         public int port; //when listenning for data, need port open
 
-        public void UpdateGameBoard(string s)
+        //TODO When debugging SERVER SIDE as the HOST, an error saying the buttons accessed from another thread other than what it was created on throws.
+        public void UpdateGameBoardText(string s)
         {
             char[] position = s.ToCharArray();
             for (int i = 0; i < 9; ++i)
@@ -26,7 +27,7 @@ namespace NDS_Networking_Project
                 {
                     if(position[i].ToString() == "-")
                     {
-                        buttons[i].Text = ""; //empty
+                        buttons[i].Text = ""; //keep empty
                     }
                     else
                     {

@@ -87,7 +87,10 @@ namespace NDS_Networking_Project
                 //also update button representing this grid cell
                 if(buttons.Count >= 9)
                 {
-                    buttons[index].Text = TileTypeToString(tileType);
+                    buttons[index].Invoke((Action)delegate
+                    {
+                        buttons[index].Text = TileTypeToString(tileType);
+                    });
                 }
 
                 return true;
@@ -170,9 +173,16 @@ namespace NDS_Networking_Project
             {
                 //change grid cell to blank
                 grid[i] = TileType.Blank;
+
                 //change board buttons to blank
                 if (buttons.Count >= 9)
-                    buttons[i].Text = TileTypeToString(TileType.Blank);
+                {
+                    //INVOKE BABY!
+                    buttons[i].Invoke((Action)delegate
+                    {
+                        buttons[i].Text = TileTypeToString(TileType.Blank);
+                    });
+                }
             }
         }
     }

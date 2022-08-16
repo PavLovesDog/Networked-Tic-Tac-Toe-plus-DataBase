@@ -36,7 +36,7 @@ namespace NDS_Networking_Project
                 tcp.chatTextBox = chatTextBox;
                 tcp.logoPicBox = logoPic;
                 tcp.clientUsernameTextBox = clientUsername;
-                tcp.buttons = buttons; // set litst
+                tcp.buttons = buttons; // set list
                 tcp.clientSocket.isConnected = true;
                 tcp.clientSocket.isModerator = false; // set to false on start up
                 tcp.clientSocket.isTurn = false; // set client turn for ticTacToe to default
@@ -127,12 +127,16 @@ namespace NDS_Networking_Project
 
                 // Assign Strings from byte[] received.
                 stateEnum = subStrings[1];
-                packet3 = subStrings[2]; // this contains "!success" command
-                currentClientUserName = subStrings[4];
-                // below contains command string message
-                packet4 = subStrings[9].Replace(">>\r\n", "") + " " + subStrings[10] + " " + subStrings[11] + " " + subStrings[12] + " " +
-                          subStrings[13] + " " + subStrings[14] + " " + subStrings[15] + " " + subStrings[16] + " " +
-                          subStrings[17]; 
+                //check if the change state command contains more commands and assign variables accordingly
+                if(subStrings.Length >= 3)
+                {
+                    packet3 = subStrings[2]; // this contains "!success" command
+                    currentClientUserName = subStrings[4];
+                    // below contains command string message
+                    packet4 = subStrings[9].Replace(">>\r\n", "") + " " + subStrings[10] + " " + subStrings[11] + " " + subStrings[12] + " " +
+                              subStrings[13] + " " + subStrings[14] + " " + subStrings[15] + " " + subStrings[16] + " " +
+                              subStrings[17]; 
+                }
                 text = subStrings[0];
             }
             else if (text.Contains("!updateboard "))
@@ -206,21 +210,27 @@ namespace NDS_Networking_Project
                     clientSocket.state = ClientSocket.State.Chatting;
                     
                     // Send Login Success Message and Display State
-                    if (packet3 == "!success")
+                    if (packet3 != "" && packet3 == "!success")
                     {
                         AddToChat(nl + "<< Login Success >>" +
                                     nl + nl + "Welcome back " + "'" + currentClientUserName + "'" + nl
                                     + "Current State: " + clientSocket.state.ToString());
+                        packet3 = ""; // reset for change state during gameplay
                     }
-                    else if (packet3 == "!success2")
+                    else if (packet3 != "" && packet3 == "!success2")
                     {
                         AddToChat(nl + "<< User Created Success >>" +
                                     nl + nl + "Welcome " + "'" + currentClientUserName + "'" + nl
                                     + "Current State: " + clientSocket.state.ToString());
+                        packet3 = ""; // reset for change state during gameplay
                     }
 
                     // Notify client of other commands available
-                    AddToChat(nl + packet4);
+                    if(packet4 != "")
+                    {
+                        AddToChat(nl + packet4);
+                        packet4 = "";
+                    }
                 }
                 else if (stateEnum == "2")
                 {
@@ -250,10 +260,18 @@ namespace NDS_Networking_Project
             else if (text.ToLower() == "!updateturn")
             {
                 clientSocket.isTurn = true;
+                if (clientSocket.player == ClientSocket.Player.P1) // X's
+                {
+                    AddToChat(nl + "<< Player 1's Turn (X) >>");
+                }
+                else
+                {
+                    AddToChat(nl + "<< Player 2's Turn (O) >>");
+                }
             }
             else if(text.ToLower() == "!updateboard")
-            {
-                //update client game board and grid
+            {;
+                //update client game grid
                 for (int i = 0; i < ticTacToe.grid.Length; i++)
                 {
                     // break string down to read seperate chars
@@ -273,11 +291,10 @@ namespace NDS_Networking_Project
                         tile = TileType.Blank;
                     }
 
-                    //TODO This will be the button change call when the list empty issue is solved..
                     ticTacToe.grid[i] = tile; // set grid
-                    ticTacToe.SetTile(i, tile); // set board
                 }
-                UpdateGameBoard(currentGameBoard);
+                //update board text 
+                UpdateGameBoardText(currentGameBoard);
                 updateTurnLabel();
             }
             else // regular chat message!

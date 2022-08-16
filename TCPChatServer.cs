@@ -28,7 +28,7 @@ namespace NDS_Networking_Project
         public string board = "---------"; // default board string
 
         //Helper creator function
-        public static TCPChatServer CreateInstance(int port, TextBox chatTextBox, PictureBox logo, TextBox usernameTextBox, Label playerTurnLabel)
+        public static TCPChatServer CreateInstance(int port, TextBox chatTextBox, PictureBox logo, TextBox usernameTextBox, Label playerTurnLabel, List<Button> buttons)
         {
             TCPChatServer tcp = null; // set to null, if it returns null, user did something wrong
 
@@ -42,6 +42,7 @@ namespace NDS_Networking_Project
                 tcp.logoPicBox = logo;
                 tcp.clientUsernameTextBox = usernameTextBox;
                 tcp.playerTurnLabel = playerTurnLabel;
+                tcp.buttons = buttons;
             }
 
             //retunr as null OR built server
@@ -528,70 +529,13 @@ namespace NDS_Networking_Project
                 }
 
                 connection.Close(); // close up DB
-                #region old stuff from A2
-                //byte[] data = Encoding.ASCII.GetBytes(" "); // create empty byte array
-                //bool getKicked = false;
-
-                ////set username------
-                //// run through connected users
-                //for (int i = 0; i < clientSockets.Count; ++i)
-                //{
-                //    // if the name is taken
-                //    if (clientSockets[i].clientUserName == clientLoginUsername)
-                //    {
-                //        // tell them it's been taken
-                //        data = Encoding.ASCII.GetBytes(nl + "!!! Username: " + clientLoginUsername + " is already taken !!!" +
-                //                                       nl + "<< Disconnecting User >>");
-                //        currentClientSocket.socket.Send(data); // send it back
-                //
-                //        // boot them
-                //        getKicked = true;
-                //        break;
-                //
-                //    }
-                //    else if (clientSockets[i].clientUserName == null) // No username by that name. SUCCESS!
-                //    {
-                //        currentClientSocket.clientUserName = clientLoginUsername;
-                //
-                //        // Send data to update display box for client Usernames
-                //        data = Encoding.ASCII.GetBytes("!displayusername " + clientLoginUsername);
-                //        currentClientSocket.socket.Send(data);
-                //
-                //        //TODO Update State message send here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                //        //Send data to client to change its state to Chatting
-                //        data = Encoding.ASCII.GetBytes("!changestate 1");
-                //        currentClientSocket.socket.Send(data);
-                //
-                //
-                //        // change data to represent success
-                //        data = Encoding.ASCII.GetBytes(nl + "<< Success >>" +
-                //                                       nl + "Your New Username: " + clientLoginUsername + nl +
-                //                                       nl + "Welcome to chat " + "'" + clientLoginUsername + "'");
-                //    }
-                //}
-
-                //// Notify
-                //if (getKicked)
-                //{
-                //    data = Encoding.ASCII.GetBytes("!forcedkick"); // command for client to get disconnect 
-                //    currentClientSocket.socket.Send(data); // send it back
-                //    clientSockets.Remove(currentClientSocket);
-                //    getKicked = false; // reset bool
-                //    return; // bail early
-                //}
-                //else
-                //{
-                //currentClientSocket.socket.Send(data); // send it back
-                // notify all you're here!
-                //}
-                #endregion
             }
             else if(text.ToLower() == "!state")
             {
                 byte[] data = Encoding.ASCII.GetBytes("You are in the '" +currentClientSocket.state.ToString() + "' state.");
                 currentClientSocket.socket.Send(data);
             }
-            else if(text.ToLower() == "!join") //TODO JOIN TIC TAC TOE
+            else if(text.ToLower() == "!join")
             {
                 bool player1Free = true;
                 bool player2Free = true;
@@ -649,54 +593,15 @@ namespace NDS_Networking_Project
             }
             else if (text.ToLower() == "!move")
             {
-                //TODO Check gamestate
-                {
-                    GameState gs = ticTacToe.GetGameState();
-                    if (gs == GameState.CrossWins)
-                    {
-                        //ChatTextBox.AppendText("X Wins!");
-                        //ChatTextBox.AppendText(Environment.NewLine);
-                        ticTacToe.ResetBoard();
-                        //TELL all to RESET boards
-                        //RESET all players back to Chatting state
-                        // other clean up...
-                        
-                        board = "---------"; // reset board and grid
-                        string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
-                        byte[] resetData = Encoding.ASCII.GetBytes("!updateboard " + resetboard);
-                        currentClientSocket.socket.Send(resetData); // send it to client to reset their boards
-
-                    }
-                    else if (gs == GameState.NaughtWins)
-                    {
-                        //ChatTextBox.AppendText("O Wins!");
-                        //ChatTextBox.AppendText(Environment.NewLine);
-                        ticTacToe.ResetBoard();
-                        //TELL all to RESET boards
-                        //RESET all players back to Chatting state
-                        // other clean up...
-                    }
-                    else if (gs == GameState.Draw)
-                    {
-                        //ChatTextBox.AppendText("Draw! ...No Winners...");
-                        //ChatTextBox.AppendText(Environment.NewLine);
-                        ticTacToe.ResetBoard();
-                        //TELL all to RESET boards
-                        //RESET all players back to Chatting state
-                        // other clean up...
-                    }
-                }
-
                 //update board string with new position
                 int index = Int32.Parse(boardIndex);
                 board = board.Insert(index, playerSymbol); // insert symbol at location
                 board = board.Remove(index + 1, 1); // remove previous symbol, which has now been pushed along
 
-                //now string is amended
+                //...now string is amended...
                 //update the game grid
                 ticTacToe.StringToGrid(board);
 
-                //TODO tells client what board now looks like (sends data to update clients gameboards)
                 //create gameboard string to send to clients
                 string gameboard = ticTacToe.GridToString(); // pull data from tictactoe grid
                 byte[] boardData = Encoding.ASCII.GetBytes("!updateboard " + gameboard);
@@ -706,8 +611,8 @@ namespace NDS_Networking_Project
                     clientSockets[i].socket.Send(boardData);
                 }
 
-                //TODO Display board data
-                //update server game board
+                //Display board data
+                //update server game grid
                 for (int i = 0; i < ticTacToe.grid.Length; i++)
                 {
                     char[] position = board.ToCharArray();
@@ -717,7 +622,7 @@ namespace NDS_Networking_Project
                     {
                         tile = TileType.Cross;
                     }
-                    else if (position[i] == '0')
+                    else if (position[i] == 'o')
                     {
                         tile = TileType.Naught;
                     }
@@ -727,9 +632,164 @@ namespace NDS_Networking_Project
                     }
 
                     ticTacToe.grid[i] = tile; // set the grid
-                    ticTacToe.SetTile(i, tile); // this call SHOULD paint the server board
-                    UpdateGameBoard(gameboard); // update own board ?
                 }
+                UpdateGameBoardText(gameboard); // update server board text
+
+                //CHECK FOR WINS, now that grid and board is updated
+                GameState gs = ticTacToe.GetGameState();
+                if (gs == GameState.CrossWins)
+                {
+                    #region Reset Gameboard & Notify Winners
+                    //Notify all of winner
+                    SendToAll(nl + "<<< Player 1 WINS >>>", currentClientSocket);
+
+                    // Reset Server board
+                    ticTacToe.ResetBoard();
+
+                    //TELL all to RESET boards
+                    board = "---------"; // reset board and grid
+                    string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
+                    byte[] resetData = Encoding.ASCII.GetBytes("!updateboard " + resetboard);
+                    for (int i = 0; i < clientSockets.Count; i++)
+                    {
+                        clientSockets[i].socket.Send(resetData); // send it to client to reset their boards
+                    }
+
+                    //RESET all players State and Player status's
+                    byte[] resetStateData = Encoding.ASCII.GetBytes("!changestate 1");
+                    for (int i = 0; i < clientSockets.Count; ++i)
+                    {
+                        //  -send command to reset CLIENT SIDE
+                        if (clientSockets[i].state == ClientSocket.State.Playing)
+                            clientSockets[i].socket.Send(resetStateData);
+                        //  -Reset through all clients SERVER SIDE
+                        if (clientSockets[i].state == ClientSocket.State.Playing)
+                            clientSockets[i].state = ClientSocket.State.Chatting;
+                        //RESET all players back to PLAYER status
+                        if (clientSockets[i].player == ClientSocket.Player.P1)
+                            clientSockets[i].player = ClientSocket.Player.NotPlaying;
+                        else if (clientSockets[i].player == ClientSocket.Player.P2)
+                            clientSockets[i].player = ClientSocket.Player.NotPlaying;
+                    }
+                    #endregion
+
+                    ////Update DATABASE
+                    //string connectionString = "Data Source=TCPChatDB.db";
+                    //var connection = new SQLiteConnection(connectionString);
+                    //connection.Open();
+                    //SQLiteCommand updateCmd1 = new SQLiteCommand();
+                    ////Get current data from DB
+                    //// - store wins and losses in ints
+                    //// - add new wins + losses
+                    //
+                    //// Create command to run
+                    //int xWins = 1;
+                    //int xlosses = 0;
+                    //string username = currentClientSocket.clientUserName;
+                    //
+                    ////Insert final data
+                    //updateCmd1.CommandText = string.Format("INSERT OR IGNORE INTO Users(Wins, Losses) " +
+                    //                     "VALUES('{0}','{1}') " +
+                    //                     "WHERE Username = '{2}", xWins, xlosses, username);
+                    //
+                    //updateCmd1.ExecuteNonQuery(); // run command to insert the data
+                    //connection.Close(); //close DB and save
+
+                    currentClientSocket.socket.BeginReceive(currentClientSocket.buffer,
+                                            0,
+                                            ClientSocket.BUFFER_SIZE,
+                                            SocketFlags.None,
+                                            ReceiveCallBack,
+                                            currentClientSocket);
+                    return;
+                }
+                else if (gs == GameState.NaughtWins)
+                {
+                    //Notify all of winner
+                    SendToAll(nl + "<<< Player 2 WINS >>>", currentClientSocket);
+
+                    // Reset Server board
+                    ticTacToe.ResetBoard();
+
+                    //TELL all to RESET boards
+                    board = "---------"; // reset board and grid
+                    string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
+                    byte[] resetData = Encoding.ASCII.GetBytes("!updateboard " + resetboard);
+                    for (int i = 0; i < clientSockets.Count; i++)
+                    {
+                        clientSockets[i].socket.Send(resetData); // send it to client to reset their boards
+                    }
+
+                    //RESET all players State and Player status's
+                    byte[] resetStateData = Encoding.ASCII.GetBytes("!changestate 1");
+                    for (int i = 0; i < clientSockets.Count; ++i)
+                    {
+                        //  -send command to reset CLIENT SIDE
+                        if (clientSockets[i].state == ClientSocket.State.Playing)
+                            clientSockets[i].socket.Send(resetStateData);
+                        //  -Reset through all clients SERVER SIDE
+                        if (clientSockets[i].state == ClientSocket.State.Playing)
+                            clientSockets[i].state = ClientSocket.State.Chatting;
+                        //RESET all players back to PLAYER status
+                        if (clientSockets[i].player == ClientSocket.Player.P1)
+                            clientSockets[i].player = ClientSocket.Player.NotPlaying;
+                        else if (clientSockets[i].player == ClientSocket.Player.P2)
+                            clientSockets[i].player = ClientSocket.Player.NotPlaying;
+                    }
+                    //Reset current turns ?
+
+                    currentClientSocket.socket.BeginReceive(currentClientSocket.buffer,
+                                            0,
+                                            ClientSocket.BUFFER_SIZE,
+                                            SocketFlags.None,
+                                            ReceiveCallBack,
+                                            currentClientSocket);
+                    return;
+                }
+                else if (gs == GameState.Draw)
+                {
+                    //Notify all of winner
+                    SendToAll(nl + "<<< DRAW >>>", currentClientSocket);
+
+                    // Reset Server board
+                    ticTacToe.ResetBoard();
+
+                    //TELL all to RESET boards
+                    board = "---------"; // reset board and grid
+                    string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
+                    byte[] resetData = Encoding.ASCII.GetBytes("!updateboard " + resetboard);
+                    for (int i = 0; i < clientSockets.Count; i++)
+                    {
+                        clientSockets[i].socket.Send(resetData); // send it to client to reset their boards
+                    }
+
+                    //RESET all players State and Player status's
+                    byte[] resetStateData = Encoding.ASCII.GetBytes("!changestate 1");
+                    for (int i = 0; i < clientSockets.Count; ++i)
+                    {
+                        //  -send command to reset CLIENT SIDE
+                        if (clientSockets[i].state == ClientSocket.State.Playing)
+                            clientSockets[i].socket.Send(resetStateData);
+                        //  -Reset through all clients SERVER SIDE
+                        if (clientSockets[i].state == ClientSocket.State.Playing)
+                            clientSockets[i].state = ClientSocket.State.Chatting;
+                        //RESET all players back to PLAYER status
+                        if (clientSockets[i].player == ClientSocket.Player.P1)
+                            clientSockets[i].player = ClientSocket.Player.NotPlaying;
+                        else if (clientSockets[i].player == ClientSocket.Player.P2)
+                            clientSockets[i].player = ClientSocket.Player.NotPlaying;
+                    }
+                    //Reset current turns ?
+
+                    currentClientSocket.socket.BeginReceive(currentClientSocket.buffer,
+                                            0,
+                                            ClientSocket.BUFFER_SIZE,
+                                            SocketFlags.None,
+                                            ReceiveCallBack,
+                                            currentClientSocket);
+                    return;
+                }
+                
 
 
                 //tells whoevers turn it is that it is their go

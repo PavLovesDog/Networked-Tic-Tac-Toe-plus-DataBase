@@ -34,7 +34,8 @@ namespace NDS_Networking_Project
                                                           ChatTextBox, 
                                                           LogoPicBox, 
                                                           ClientUsernameTextBox, 
-                                                          PlayerTurnLabel); 
+                                                          PlayerTurnLabel,
+                                                          ticTacToe.buttons); 
                     if(server == null)
                     {
                         // ERRORS!
@@ -43,7 +44,6 @@ namespace NDS_Networking_Project
                     }
 
                     server.SetupServer();
-                    //TODO Reference Tic Tac Toe board here
                     server.ticTacToe = ticTacToe;
 
                     // Indent Icon for connectivity
