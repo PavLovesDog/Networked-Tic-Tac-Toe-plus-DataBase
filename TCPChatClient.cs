@@ -406,13 +406,7 @@ namespace NDS_Networking_Project
                 UpdateGameBoardText(currentGameBoard);
                 updateTurnLabel(false);
             }
-            else // regular chat message!
-            {
-                AddToChat(text);
-            }
-
-            // Game Over Catch
-            if (gameReset)
+            else if (gameReset)
             {
                 if (oWinConditionMessage != "")
                 {
@@ -422,7 +416,7 @@ namespace NDS_Networking_Project
                 {
                     AddToChat(nl + xWinConditionMessage);
                 }
-                else if(drawMessage != "")
+                else if (drawMessage != "")
                 {
                     AddToChat(nl + drawMessage);
                 }
@@ -433,33 +427,38 @@ namespace NDS_Networking_Project
                 #region Update board catch
                 //if (text.Contains("!owins") || text.Contains("!xwins"))
                 //{
-                    for (int i = 0; i < ticTacToe.grid.Length; i++)
+                for (int i = 0; i < ticTacToe.grid.Length; i++)
+                {
+                    // break string down to read seperate chars
+                    char[] position = currentGameBoard.ToCharArray();
+                    TileType tile = new TileType();
+
+                    if (position[i] == 'x')
                     {
-                        // break string down to read seperate chars
-                        char[] position = currentGameBoard.ToCharArray();
-                        TileType tile = new TileType();
-
-                        if (position[i] == 'x')
-                        {
-                            tile = TileType.Cross;
-                        }
-                        else if (position[i] == 'o')
-                        {
-                            tile = TileType.Naught;
-                        }
-                        else if (position[i] == '-')
-                        {
-                            tile = TileType.Blank;
-                        }
-
-                        ticTacToe.grid[i] = tile; // set grid
+                        tile = TileType.Cross;
                     }
-                    //update board text 
-                    UpdateGameBoardText(currentGameBoard);
-                    updateTurnLabel(true);
+                    else if (position[i] == 'o')
+                    {
+                        tile = TileType.Naught;
+                    }
+                    else if (position[i] == '-')
+                    {
+                        tile = TileType.Blank;
+                    }
+
+                    ticTacToe.grid[i] = tile; // set grid
+                }
+                //update board text 
+                UpdateGameBoardText(currentGameBoard);
+                updateTurnLabel(true);
                 //}
                 #endregion
             }
+            else // regular chat message!
+            {
+                AddToChat(text);
+            }
+
 
             // ----------------------------------------------------------------------------- Reaction Commands
 
