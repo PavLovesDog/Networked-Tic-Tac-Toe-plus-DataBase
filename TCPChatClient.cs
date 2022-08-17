@@ -114,21 +114,125 @@ namespace NDS_Networking_Project
             string currentClientUserName = "";
             string currentGameBoard = "";
 
+            //Catch Jumbled up messages! Why does this happen?
+            bool gameReset = false;
+            string resetGameMessage = "";
+            string oWinConditionMessage = "";
+            string xWinConditionMessage = "";
+            string drawMessage = "";
+
+            //TODO SHUTS DOWN ON X WINS NOW...
+            // catch and seperate string for X WIN conditon
+            if(text.Contains(";") && text.Contains("!xwins")) // the delimeter (this is to distinguish between jumbled up messages
+            {
+                string[] substrings = text.Split(";");
+
+                for(int i = 0; i < substrings.Length; ++i)
+                {
+                    if (substrings[i].Contains("!updateboard"))
+                    {
+                        currentGameBoard = "---------";
+                    }
+                    else if (substrings[i].Contains("!changestate"))
+                    {
+                        stateEnum = "1";
+                    }
+                    else if(substrings[i].Contains("'Chatting'"))
+                    {
+                        resetGameMessage = substrings[i];
+                        gameReset = true;
+                    }
+                    else if (substrings[i].Contains("(Player 1)")) // X win specific catch
+                    {
+                        xWinConditionMessage = substrings[i];
+                    }
+                }
+            }
+
+            // catch and seperate string for O WIN conditon
+            if (text.Contains(";") && text.Contains("!owins")) // the delimeter (this is to distinguish between jumbled up messages
+            {
+                string[] substrings = text.Split(";");
+
+                for (int i = 0; i < substrings.Length; ++i)
+                {
+                    if (substrings[i].Contains("!updateboard"))
+                    {
+                        //string[] UBsubString = subString[i].Split(' ');
+                        //currentGameBoard = UBsubString[1];
+                        //currentGameBoard = currentGameBoard.Remove(9); // append ';' for corrent gameboard values
+                        currentGameBoard = "---------";
+                    }
+                    else if (substrings[i].Contains("!changestate"))
+                    {
+                        //string[] CSsubStrings = subString[i].Split(' ');
+                        //stateEnum = CSsubStrings[1]; ??
+                        //stateEnum = stateEnum.Remove(1); // append ';' and everything after
+                        stateEnum = "1";
+                    }
+                    else if (substrings[i].Contains("'Chatting'"))
+                    {
+                        resetGameMessage = substrings[i];
+                        gameReset = true;
+                    }
+                    else if(substrings[i].Contains("(Player 2)")) // O win specific catch
+                    {
+                        oWinConditionMessage = substrings[i];
+                    }
+                }
+            }
+
+            //Catch and seperate string for DRAW condition
+            if (text.Contains(";") && text.Contains("!draw"))
+            {
+                string[] substrings = text.Split(";");
+
+                for (int i = 0; i < substrings.Length; ++i)
+                {
+
+                    if (substrings[i].Contains("!updateboard"))
+                    {
+                        currentGameBoard = "---------";
+                    }
+                    else if (substrings[i].Contains("!changestate"))
+                    {
+                        stateEnum = "1";
+                    }
+                    else if (substrings[i].Contains("'Chatting'"))
+                    {
+                        resetGameMessage = substrings[i];
+                        gameReset = true;
+                    }
+                    else if (substrings[i].Contains("DRAW"))
+                    {
+                        drawMessage = substrings[i];
+                    }
+                }
+            }
+
             if (text.Contains("!displayusername "))
             {
                 tempUserName = text.Remove(0, 17);
                 text = text.Remove(16, text.Length - 16);
             }
             //NOTE belows check handles 2-3 packets of data that got mixed up together
-            else if (text.Contains("!changestate ")) 
+            
+            if (text.Contains("!changestate ")) 
             {
                 // seperate string data and assign correctly
                 string[] subStrings = text.Split(' ');
 
                 // Assign Strings from byte[] received.
                 stateEnum = subStrings[1];
+                char[] letters = stateEnum.ToCharArray();
+                if(letters.Length > 1) // theres too many letters in our state enum because bit stream error
+                {
+                    //stateEnum = stateEnum.Remove(1);
+                    stateEnum = "1"; // hardcode...
+                }
+                
                 //check if the change state command contains more commands and assign variables accordingly
-                if(subStrings.Length >= 3)
+                if(subStrings.Length >= 3 && gameReset == false)
                 {
                     packet3 = subStrings[2]; // this contains "!success" command
                     currentClientUserName = subStrings[4];
@@ -137,24 +241,27 @@ namespace NDS_Networking_Project
                               subStrings[13] + " " + subStrings[14] + " " + subStrings[15] + " " + subStrings[16] + " " +
                               subStrings[17]; 
                 }
-                text = subStrings[0];
+
+                //text = subStrings[0];
             }
-            else if (text.Contains("!updateboard "))
+            
+            if (text.Contains("!updateboard "))
             {
+                string temp = currentGameBoard; // store previous gameboard for safe keeping
                 string[] subString = text.Split(' ');
                 currentGameBoard = subString[1];
-                text = subString[0];
+
+                // catch for extra clients
+                char[] charBoard = currentGameBoard.ToCharArray();
+                if (charBoard.Length != 9) // too many or too less 
+                {
+                    currentGameBoard = temp; // re-set it back to temp one
+                }
+                //text = subString[0];
             }
             
 
             // Reaction Commands ---------------------------------------------------------------
-            //TODO Other commands
-            //UPDATE BOARD
-            //Is player joining game? playing?
-            //WHat player client is
-            // whose turn it is
-            //gameover?? - reset to chatting phase
-
             if(text.ToLower() == "!exit")
             {
                 // Reset icon Identation
@@ -198,7 +305,7 @@ namespace NDS_Networking_Project
                     clientUsernameTextBox.Text = tempUserName;
                 });
             }
-            else if(text.ToLower() == "!changestate")
+            else if(text.Contains("!changestate"))
             {
                 if(stateEnum == "0")
                 {
@@ -225,8 +332,10 @@ namespace NDS_Networking_Project
                         packet3 = ""; // reset for change state during gameplay
                     }
 
+                    ////////////////////////////////////
+
                     // Notify client of other commands available
-                    if(packet4 != "")
+                    if (packet4 != "")
                     {
                         AddToChat(nl + packet4);
                         packet4 = "";
@@ -269,8 +378,8 @@ namespace NDS_Networking_Project
                     AddToChat(nl + "<< Player 2's Turn (O) >>");
                 }
             }
-            else if(text.ToLower() == "!updateboard")
-            {;
+            else if(text.Contains("!updateboard"))
+            {
                 //update client game grid
                 for (int i = 0; i < ticTacToe.grid.Length; i++)
                 {
@@ -295,11 +404,61 @@ namespace NDS_Networking_Project
                 }
                 //update board text 
                 UpdateGameBoardText(currentGameBoard);
-                updateTurnLabel();
+                updateTurnLabel(false);
             }
             else // regular chat message!
             {
                 AddToChat(text);
+            }
+
+            // Game Over Catch
+            if (gameReset)
+            {
+                if (oWinConditionMessage != "")
+                {
+                    AddToChat(nl + oWinConditionMessage);
+                }
+                else if (xWinConditionMessage != "")
+                {
+                    AddToChat(nl + xWinConditionMessage);
+                }
+                else if(drawMessage != "")
+                {
+                    AddToChat(nl + drawMessage);
+                }
+
+                AddToChat(nl + resetGameMessage);
+                gameReset = false;
+
+                #region Update board catch
+                //if (text.Contains("!owins") || text.Contains("!xwins"))
+                //{
+                    for (int i = 0; i < ticTacToe.grid.Length; i++)
+                    {
+                        // break string down to read seperate chars
+                        char[] position = currentGameBoard.ToCharArray();
+                        TileType tile = new TileType();
+
+                        if (position[i] == 'x')
+                        {
+                            tile = TileType.Cross;
+                        }
+                        else if (position[i] == 'o')
+                        {
+                            tile = TileType.Naught;
+                        }
+                        else if (position[i] == '-')
+                        {
+                            tile = TileType.Blank;
+                        }
+
+                        ticTacToe.grid[i] = tile; // set grid
+                    }
+                    //update board text 
+                    UpdateGameBoardText(currentGameBoard);
+                    updateTurnLabel(true);
+                //}
+                #endregion
             }
 
             // ----------------------------------------------------------------------------- Reaction Commands

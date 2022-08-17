@@ -37,19 +37,29 @@ namespace NDS_Networking_Project
             }
         }
 
-        public void updateTurnLabel()
+        public void updateTurnLabel(bool reset)
         {
-            playerTurnLabel.Invoke((Action)delegate
+            if(!reset)
             {
-                if (playerTurnLabel.Text == "X's Turn...")
+                playerTurnLabel.Invoke((Action)delegate
                 {
-                    playerTurnLabel.Text = "O's Turn...";
-                }
-                else if (playerTurnLabel.Text == "O's Turn...")
+                    if (playerTurnLabel.Text == "X's Turn...")
+                    {
+                        playerTurnLabel.Text = "O's Turn...";
+                    }
+                    else if (playerTurnLabel.Text == "O's Turn...")
+                    {
+                        playerTurnLabel.Text = "X's Turn...";
+                    }
+                });
+            }
+            else
+            {
+                playerTurnLabel.Invoke((Action)delegate
                 {
                     playerTurnLabel.Text = "X's Turn...";
-                }
-            });
+                });
+            }
         }
 
         // Function to control borderstyle of icon
