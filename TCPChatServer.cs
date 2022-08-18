@@ -30,11 +30,10 @@ namespace NDS_Networking_Project
         //Helper creator function
         public static TCPChatServer CreateInstance(int port, TextBox chatTextBox, PictureBox logo, TextBox usernameTextBox, Label playerTurnLabel, List<Button> buttons)
         {
-            TCPChatServer tcp = null; // set to null, if it returns null, user did something wrong
+            TCPChatServer tcp = null;
 
-            //setup if port within range & textbox not null
-            if(port > 0 && port < 65535 && // port within range
-               chatTextBox != null) // text box exists
+            if(port > 0 && port < 65535 &&
+               chatTextBox != null)
             {
                 tcp = new TCPChatServer();
                 tcp.port = port;
@@ -45,7 +44,6 @@ namespace NDS_Networking_Project
                 tcp.buttons = buttons;
             }
 
-            //retunr as null OR built server
             return tcp;
         }
 
@@ -57,7 +55,7 @@ namespace NDS_Networking_Project
             serverSocket.BeginAccept(AcceptCallBack, this);
             chatTextBox.Text += "<< Server Setup Complete >>" + nl;
 
-            //TODO Open DB Here
+
             chatTextBox.Text += "...constructing database..." + nl; // notify of db building..
             // Create Database
             string connectionString = "Data Source=TCPChatDB.db";
@@ -145,7 +143,7 @@ namespace NDS_Networking_Project
 
             AddToChat(text);
 
-            // Strings for command specific data control
+            // Strings for command specific data control ---------------------------------------------
             string clientLoginUsername = "";
             string clientPassword = "";
             string changeNameUserName = "";
@@ -170,11 +168,9 @@ namespace NDS_Networking_Project
                     clientLoginUsername = subString[1];
                     clientPassword = subString[2];
                 }
-                // OLD setupUserName = text.Remove(0, 10);
 
                 //append text so it triggers command
                 text = subString[0];
-                // OLDtext = text.Remove(9, text.Length - 9);
             }
             else if (text.Contains("!user ")) // changing name
             {
@@ -227,9 +223,12 @@ namespace NDS_Networking_Project
             if (text.ToLower() == "!commands")
             {
                 byte[] data = Encoding.ASCII.GetBytes(nl + "<< COMMANDS >>" +
+                                                      nl + "!join   --> join a game of Tic-Tac-Toe!" +
+                                                      nl + "!scores   --> see a list of all Tic-Tac-Toe scores" +
+                                                      nl + "!state   --> see which state you're in" +
                                                       nl + "!commands   --> see a list of commands" +
-                                                      nl + "!username [new_username]   --> set yourself a new username" +
-                                                      nl + "!user   --> change your current username" +
+                                                      nl + "[REDACTED] !username [new_username]   --> set yourself a new username" +
+                                                      nl + "[REDACTED] !user   --> change your current username" +
                                                       nl + "!about   --> see details of the program" +
                                                       nl + "!who   --> see who is in the chat" +
                                                       nl + "!whisper [username] [message]   --> select user for private message" +
@@ -344,6 +343,7 @@ namespace NDS_Networking_Project
             }
             else if (text.ToLower() == "!login")
             {
+                #region DB checking
                 //Open DB
                 string connectionString = "Data Source=TCPChatDB.db"; // find and open db
                 var connection = new SQLiteConnection(connectionString);
@@ -412,8 +412,9 @@ namespace NDS_Networking_Project
                     }
                 }
                 rdr.Close(); // close reader
+                #endregion
 
-                if(userExists && passwordMatches)
+                if (userExists && passwordMatches)
                 { 
                     //TODO Change multiple messages sent to be ONE message ??
                     //continue log in process
@@ -450,7 +451,7 @@ namespace NDS_Networking_Project
                     byte[] packet5 = Encoding.ASCII.GetBytes("< WRONG PASSWORD >");
                     currentClientSocket.socket.Send(packet5);
                 }
-                else // !user exists && addUser
+                else // !user exists
                 {
                     // No user exists
                     AddToChat("< NO USER EXISTS >" + nl + "...Adding User to DB...");
@@ -542,11 +543,10 @@ namespace NDS_Networking_Project
                 //Loop through clientSockets to find availability in game!
                 for (int i = 0; i < clientSockets.Count; ++i)
                 {
-                    //clientSockets[i].socket.Send(resetBoard); // send it to client to reset their boards
                     // if player one spot is taken
                     if (clientSockets[i].player == ClientSocket.Player.P1)
                     {
-                        // move in
+                        // move on
                         player1Free = false;
                     }
                     else if (clientSockets[i].player == ClientSocket.Player.P2)
@@ -594,7 +594,7 @@ namespace NDS_Networking_Project
             else if (text.ToLower() == "!move")
             {
                 //update board string with new position
-                int index = Int32.Parse(boardIndex);
+                int index = Int32.Parse(boardIndex); // convert int to string
                 board = board.Insert(index, playerSymbol); // insert symbol at location
                 board = board.Remove(index + 1, 1); // remove previous symbol, which has now been pushed along
 
@@ -605,8 +605,7 @@ namespace NDS_Networking_Project
                 //create gameboard string to send to clients
                 string gameboard = ticTacToe.GridToString(); // pull data from tictactoe grid
                 byte[] boardData = Encoding.ASCII.GetBytes("!updateboard " + gameboard);
-                //run through clients and send them game data
-                for(int i = 0; i < clientSockets.Count; i++)
+                for(int i = 0; i < clientSockets.Count; i++) //run through clients and send them game data
                 {
                     clientSockets[i].socket.Send(boardData);
                 }
@@ -824,45 +823,10 @@ namespace NDS_Networking_Project
                     }
                 }
             }
-            else if (text.ToLower() == "!scores") //TODO display Scores for TIC TAC TOE from DB
+            else if (text.ToLower() == "!scores")
             {
                 byte[] sendScores = Encoding.ASCII.GetBytes("!printscores");
                 currentClientSocket.socket.Send(sendScores); // send command back to print scores!
-
-                //// dump all data from users, wins, loses columns to chatbox
-                //string connectionStr = "Data Source=TCPChatDB.db";
-                //var connection = new SQLiteConnection(connectionStr);
-                //connection.Open();
-                //
-                //string scoreCommand = "SELECT Username, Wins, Losses, Draws FROM Users GROUP BY Username ORDER BY Wins DESC";
-                //SQLiteCommand scoreCmd = new SQLiteCommand(scoreCommand, connection);
-                //SQLiteDataReader scoreRdr = scoreCmd.ExecuteReader();
-                //
-                //AddToChat("_____________SCORES_____________" + nl + 
-                //          "Username | Wins | Losses | Draws");
-                //
-                //while(scoreRdr.Read())
-                //{
-                //    // make variables every run through for new user
-                //    int wins = 0;
-                //    int losses = 0;
-                //    int draws = 0;
-                //
-                //    AddToChat(" " + scoreRdr.GetString(0) + "  |  " + scoreRdr.GetInt32(1) + "  |   " + scoreRdr.GetInt32(2) + "   |  " + scoreRdr.GetInt32(3));
-                //}
-                //
-                //scoreRdr.Close();
-                //connection.Close();
-            }
-            else if (text.Contains("!deleteDB")) // DANGER !! Debug Only...
-            {
-                string connectionString = "Data Source=TCPChatDB.db";
-                var connection = new SQLiteConnection(connectionString);
-                connection.Open();
-                string sqlCommandText = "DROP TABLE Users";
-                SQLiteCommand cmd = new SQLiteCommand(sqlCommandText, connection);
-                cmd.ExecuteNonQuery();
-                connection.Close();
             }
             else if (text.ToLower() == "!user")
             {
@@ -1014,41 +978,7 @@ namespace NDS_Networking_Project
             }
         }
 
-        public void ResetClientBoard()
-        {
-            // Reset Server board (updates grid to "---------")
-            ticTacToe.ResetBoard();
-
-            //TELL all to RESET boards
-            board = "---------"; // reset board and grid
-            string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
-            byte[] resetData = Encoding.ASCII.GetBytes("!updateboard " + resetboard + " ;");
-            for (int i = 0; i < clientSockets.Count; i++)
-            {
-                clientSockets[i].socket.Send(resetData); // send it to client to reset their boards
-            }
-        }
-
-        public void ResetClientStates()
-        {
-            //RESET all players State and Player status's
-            byte[] resetStateData = Encoding.ASCII.GetBytes("!changestate 1 ;");
-            for (int i = 0; i < clientSockets.Count; ++i)
-            {
-                //  -send command to reset CLIENT SIDE
-                if (clientSockets[i].state == ClientSocket.State.Playing)
-                    clientSockets[i].socket.Send(resetStateData);
-                //  -Reset through all clients SERVER SIDE
-                if (clientSockets[i].state == ClientSocket.State.Playing)
-                    clientSockets[i].state = ClientSocket.State.Chatting;
-                //RESET all players back to PLAYER status
-                if (clientSockets[i].player == ClientSocket.Player.P1)
-                    clientSockets[i].player = ClientSocket.Player.NotPlaying;
-                else if (clientSockets[i].player == ClientSocket.Player.P2)
-                    clientSockets[i].player = ClientSocket.Player.NotPlaying;
-            }
-        }
-
+        // Function for updating the DataBase with wins and losses conditions
         public void UpdateDBWinOrLoss(string winnerName, string loserName)
         {
             //Update DATABASE
@@ -1111,6 +1041,7 @@ namespace NDS_Networking_Project
             updateOConnection.Close(); //close DB and save
         }
 
+        // Function for updating the DataBase with draw conditions
         public void UpdateDBDraw(string Player1, string Player2)
         {
             //Update DATABASE
@@ -1159,222 +1090,6 @@ namespace NDS_Networking_Project
                 updateDCmd1.CommandText = string.Format("UPDATE Users " +
                                      "SET Draws = '{0}' " +
                                      "WHERE Username = '{1}'", Draws, Player2);
-
-                updateDCmd1.ExecuteNonQuery();
-            }
-
-            updateDConnection.Close(); //close DB and save
-        }
-
-        public void NaughtWinsOperations(ClientSocket currentClientSocket)
-        {
-            //find winner/loser usernames
-            string winnerName = "";
-            string loserName = "";
-            for (int i = 0; i < clientSockets.Count; i++)
-            {
-                if (clientSockets[i].player == ClientSocket.Player.P2) // O player
-                    winnerName = clientSockets[i].clientUserName;
-                if (clientSockets[i].player == ClientSocket.Player.P1) // X player
-                    loserName = clientSockets[i].clientUserName;
-            }
-
-            //Notify all of winner
-            byte[] winData = Encoding.ASCII.GetBytes(nl + "<<< " + winnerName + " (Player 2) WINS >>>;");
-            for (int i = 0; i < clientSockets.Count; i++)
-            {
-                clientSockets[i].socket.Send(winData); // send it to client to reset their boards
-            }
-
-            //Notify of state changes
-            SendToAll(nl + "...All players reverted to 'Chatting' state..." + nl +
-                           "< New game free to join! >;!owins;", currentClientSocket);
-
-            // Reset Server board
-            ticTacToe.ResetBoard();
-
-            //TELL all to RESET boards
-            board = "---------"; // reset board and grid
-            string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
-            byte[] resetData = Encoding.ASCII.GetBytes("!updateboard " + resetboard + " ;");
-            for (int i = 0; i < clientSockets.Count; i++)
-            {
-                clientSockets[i].socket.Send(resetData); // send it to client to reset their boards
-            }
-
-            //RESET all players State and Player status's
-            byte[] resetStateData = Encoding.ASCII.GetBytes("!changestate 1 ;");
-            for (int i = 0; i < clientSockets.Count; ++i)
-            {
-                //  -send command to reset CLIENT SIDE
-                if (clientSockets[i].state == ClientSocket.State.Playing)
-                    clientSockets[i].socket.Send(resetStateData);
-                //  -Reset through all clients SERVER SIDE
-                if (clientSockets[i].state == ClientSocket.State.Playing)
-                    clientSockets[i].state = ClientSocket.State.Chatting;
-                //RESET all players back to PLAYER status
-                if (clientSockets[i].player == ClientSocket.Player.P1)
-                    clientSockets[i].player = ClientSocket.Player.NotPlaying;
-                else if (clientSockets[i].player == ClientSocket.Player.P2)
-                    clientSockets[i].player = ClientSocket.Player.NotPlaying;
-            }
-
-            //Update DATABASE
-            string updateOConnectionString = "Data Source=TCPChatDB.db";
-            var updateOConnection = new SQLiteConnection(updateOConnectionString);
-            updateOConnection.Open();
-            SQLiteCommand updateOCmd1 = new SQLiteCommand("", updateOConnection);
-
-            //Winner DB additions
-            {
-                //construct win/losses ints
-                int oWins = 1;
-                int oLosses = 0;
-
-                //Get current data from DB and store wins and losses in ints
-                updateOCmd1.CommandText = string.Format("SELECT Wins, Losses " +
-                                                       "FROM Users " +
-                                                       "WHERE Username = '{0}'", winnerName);
-                SQLiteDataReader updateORdr = updateOCmd1.ExecuteReader();// open data reader
-                while (updateORdr.Read())
-                {
-                    oWins += updateORdr.GetInt32(0);
-                    oLosses += updateORdr.GetInt32(1);
-                }
-                updateORdr.Close();
-
-                //Insert final data (add updated wins + losses)
-                updateOCmd1.CommandText = string.Format("UPDATE Users " +
-                                     "SET Wins = '{0}', Losses = '{1}' " +
-                                     "WHERE Username = '{2}'", oWins, oLosses, winnerName);
-
-                updateOCmd1.ExecuteNonQuery();
-            }
-
-            //Loser DB additions
-            {
-                //construct win/losses ints
-                int xWins = 0;
-                int xLosses = 1;
-
-                //Get current data from DB and store wins and losses in ints
-                updateOCmd1.CommandText = string.Format("SELECT Wins, Losses " +
-                                                       "FROM Users " +
-                                                       "WHERE Username = '{0}'", loserName);
-                SQLiteDataReader updateORdr2 = updateOCmd1.ExecuteReader();// open data reader
-                while (updateORdr2.Read())
-                {
-                    xWins += updateORdr2.GetInt32(0);
-                    xLosses += updateORdr2.GetInt32(1);
-                }
-                updateORdr2.Close();
-
-                //Insert final data (add updated wins + losses)
-                updateOCmd1.CommandText = string.Format("UPDATE Users " +
-                                     "SET Wins = '{0}', Losses = '{1}' " +
-                                     "WHERE Username = '{2}'", xWins, xLosses, loserName);
-                updateOCmd1.ExecuteNonQuery();
-            }
-
-            updateOConnection.Close(); //close DB and save
-        }
-
-        public void DrawWinsOperation(ClientSocket currentClientSocket)
-        {
-            //find player usernames
-            string Player1 = "";
-            string Player2 = "";
-            for (int i = 0; i < clientSockets.Count; i++)
-            {
-                if (clientSockets[i].player == ClientSocket.Player.P1)
-                    Player1 = clientSockets[i].clientUserName;
-                if (clientSockets[i].player == ClientSocket.Player.P2)
-                    Player2 = clientSockets[i].clientUserName;
-            }
-
-            //Notify all of winner
-            SendToAll(nl + "<<< DRAW >>>;", currentClientSocket);
-
-            //Notify of state changes
-            SendToAll(nl + "...All players reverted to 'Chatting' state..." + nl +
-                           "< New game free to join! >;!draw;", currentClientSocket);
-
-            // Reset Server board
-            ticTacToe.ResetBoard();
-
-            //TELL all to RESET boards
-            board = "---------"; // reset board and grid
-            string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
-            byte[] resetData = Encoding.ASCII.GetBytes("!updateboard " + resetboard + ";");
-            for (int i = 0; i < clientSockets.Count; i++)
-            {
-                clientSockets[i].socket.Send(resetData); // send it to client to reset their boards
-            }
-
-            //RESET all players State and Player status's
-            byte[] resetStateData = Encoding.ASCII.GetBytes("!changestate 1;");
-            for (int i = 0; i < clientSockets.Count; ++i)
-            {
-                //  -send command to reset CLIENT SIDE
-                if (clientSockets[i].state == ClientSocket.State.Playing)
-                    clientSockets[i].socket.Send(resetStateData);
-                //  -Reset through all clients SERVER SIDE
-                if (clientSockets[i].state == ClientSocket.State.Playing)
-                    clientSockets[i].state = ClientSocket.State.Chatting;
-                //RESET all players back to PLAYER status
-                if (clientSockets[i].player == ClientSocket.Player.P1)
-                    clientSockets[i].player = ClientSocket.Player.NotPlaying;
-                else if (clientSockets[i].player == ClientSocket.Player.P2)
-                    clientSockets[i].player = ClientSocket.Player.NotPlaying;
-            }
-
-            //UPDATE DB
-            //Update DATABASE
-            string updateDConnectionString = "Data Source=TCPChatDB.db";
-            var updateDConnection = new SQLiteConnection(updateDConnectionString);
-            updateDConnection.Open();
-            SQLiteCommand updateDCmd1 = new SQLiteCommand("", updateDConnection);
-
-            //Player 1 (X) DB additions
-            {
-                //Get current data from DB and store draws
-                int xDraws = 1;
-                updateDCmd1.CommandText = string.Format("SELECT Draws " +
-                                                       "FROM Users " +
-                                                       "WHERE Username = '{0}'", Player1);
-                SQLiteDataReader updateDRdr = updateDCmd1.ExecuteReader();
-                while (updateDRdr.Read())
-                {
-                    xDraws += updateDRdr.GetInt32(0);
-                }
-                updateDRdr.Close();
-
-                //Insert final data (add updated wins + losses)
-                updateDCmd1.CommandText = string.Format("UPDATE Users " +
-                                     "SET Draws = '{0}' " +
-                                     "WHERE Username = '{1}'", xDraws, Player1);
-
-                updateDCmd1.ExecuteNonQuery();
-            }
-
-            //Player 2 (O) DB additions
-            {
-                //Get current data from DB and store draws
-                int oDraws = 1;
-                updateDCmd1.CommandText = string.Format("SELECT Draws " +
-                                                       "FROM Users " +
-                                                       "WHERE Username = '{0}'", Player2);
-                SQLiteDataReader updateDRdr2 = updateDCmd1.ExecuteReader();
-                while (updateDRdr2.Read())
-                {
-                    oDraws += updateDRdr2.GetInt32(0);
-                }
-                updateDRdr2.Close();
-
-                //Insert final data (add updated wins + losses)
-                updateDCmd1.CommandText = string.Format("UPDATE Users " +
-                                     "SET Draws = '{0}' " +
-                                     "WHERE Username = '{1}'", oDraws, Player2);
 
                 updateDCmd1.ExecuteNonQuery();
             }

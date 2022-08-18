@@ -18,12 +18,10 @@ namespace NDS_Networking_Project
         public string serverIP;
         public TicTacToe ticTacToe;
 
-        // helper creator static function
         public static TCPChatClient CreateInstance(int port, int serverPort, string serverIP, Label playerTurnLabel, TextBox chatTextBox, PictureBox logoPic, TextBox clientUsername, List<Button> buttons)
         {
             TCPChatClient tcp = null;
 
-            //check ports are open and in range
             if (port > 0 && port < 65535 &&
                 serverPort > 0 && serverPort < 65535 &&
                 serverIP.Length > 0 && chatTextBox != null)
@@ -39,7 +37,7 @@ namespace NDS_Networking_Project
                 tcp.clientUsernameTextBox = clientUsername;
                 tcp.buttons = buttons; // set list
                 tcp.clientSocket.isConnected = true;
-                tcp.clientSocket.isModerator = false; // set to false on start up
+                tcp.clientSocket.isModerator = false;
                 tcp.clientSocket.isTurn = false; // set client turn for ticTacToe to default
                 tcp.clientSocket.state = ClientSocket.State.Login; // set state to Login state upon connection
                 tcp.clientSocket.player = ClientSocket.Player.NotPlaying; // NotPlaying is default
@@ -107,7 +105,7 @@ namespace NDS_Networking_Project
             Array.Copy(currentClientSocket.buffer, recBuf, received);
             string text = Encoding.ASCII.GetString(recBuf);
 
-            // ammend strings accordingly for commands
+            // string variables for commands --------------------------------------------------
             string tempUserName = "";
             string stateEnum = "";
             string packet3 = "";
@@ -118,6 +116,7 @@ namespace NDS_Networking_Project
             string loserName = "";
             bool gameReset = false;
 
+            // Ammend command strings received --------------------------------------------------
             if (text.Contains("!displayusername "))
             {
                 tempUserName = text.Remove(0, 17);
@@ -136,7 +135,7 @@ namespace NDS_Networking_Project
                 if (letters.Length > 1) // theres too many letters in our state enum because bit stream error
                 {
                     //stateEnum = stateEnum.Remove(1);
-                    stateEnum = "1"; // hardcode...
+                    stateEnum = "1"; // hardcode... string seems to change cient to client..
                 }
 
                 //check if the change state command contains more commands and assign variables accordingly
@@ -157,7 +156,7 @@ namespace NDS_Networking_Project
                 string[] subString = text.Split(' ');
                 currentGameBoard = subString[1];
 
-                // catch for extra clients
+                // catch for extra clients and second passes. in particular, bame board reset calls
                 char[] charBoard = currentGameBoard.ToCharArray();
                 if (charBoard.Length != 9) // too many or too less 
                 {
@@ -174,29 +173,24 @@ namespace NDS_Networking_Project
             }
 
             // Reaction Commands ---------------------------------------------------------------
-            if(text.ToLower() == "!exit")
+            if(text.ToLower() == "!exit") // A2 command, exit gracefully..
             {
-                // Reset icon Identation
                 IndentIcon();
-
-                //Empty Username box
                 clientUsernameTextBox.Invoke((Action)delegate
                 {
                     clientUsernameTextBox.Text = "";
                 });
 
-                // clear chat window
                 chatTextBox.Invoke((Action)delegate
                 {
                     chatTextBox.Text = "<< Disconnected From Server >>";
                 });
 
-                // nullify username and other objects for re-connection parameters
                 currentClientSocket.clientUserName = null;
                 clientUsernameTextBox = null;
                 chatTextBox = null;
                 logoPicBox = null;
-                return; // leave function as calling further will cause crashes
+                return;
             }
             else if(text.ToLower() == "!printscores")
             {
@@ -241,7 +235,7 @@ namespace NDS_Networking_Project
                 string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
                 UpdateGameBoard(resetboard, gameReset);
 
-                //reset state too chatting
+                //reset state
                 stateEnum = "1"; // chatting
                 ChangeState(stateEnum);
 
@@ -264,10 +258,10 @@ namespace NDS_Networking_Project
 
                 //reset game board
                 ticTacToe.ResetBoard();
-                string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
+                string resetboard = ticTacToe.GridToString();
                 UpdateGameBoard(resetboard, gameReset);
 
-                //reset state too chatting
+                //reset state
                 stateEnum = "1"; // chatting
                 ChangeState(stateEnum);
 
@@ -291,7 +285,7 @@ namespace NDS_Networking_Project
 
                 //reset game board
                 ticTacToe.ResetBoard();
-                string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
+                string resetboard = ticTacToe.GridToString();
                 UpdateGameBoard(resetboard, gameReset);
 
                 //reset state too chatting
@@ -338,7 +332,7 @@ namespace NDS_Networking_Project
                     //Update state!
                     clientSocket.state = ClientSocket.State.Chatting;
                     
-                    //Catch for initial bit stream error of receiving messages!
+                    // --Catch for initial login bit stream error of receiving messages!--
                     // Send Login Success Message and Display State
                     if (packet3 != "" && packet3 == "!success")
                     {
@@ -369,6 +363,7 @@ namespace NDS_Networking_Project
             }
             else if (text.ToLower() == "!player1")
             {
+                // set state and player locally
                 clientSocket.state = ClientSocket.State.Playing;
                 clientSocket.player = ClientSocket.Player.P1;
                 clientSocket.isTurn = true;
@@ -377,6 +372,7 @@ namespace NDS_Networking_Project
             }
             else if (text.ToLower() == "!player2")
             {
+                // set state and player locally
                 clientSocket.state = ClientSocket.State.Playing;
                 clientSocket.player = ClientSocket.Player.P2;
                 clientSocket.isTurn = false;
@@ -431,6 +427,7 @@ namespace NDS_Networking_Project
             socket.Close();
         }
 
+        // Updates own game board and sets 'turn' label
         public void UpdateGameBoard(string currentGameBoard, bool condition)
         {
             //update client game grid
@@ -460,6 +457,7 @@ namespace NDS_Networking_Project
             updateTurnLabel(condition);
         }
 
+        // Change the local state of the client
         public void ChangeState(string stateEnum)
         {
             if (stateEnum == "0")
