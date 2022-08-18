@@ -22,7 +22,6 @@ namespace NDS_Networking_Project
 
     public class TicTacToe
     {
-        //TODO have server dictate whose turn it is and which tile types all clients are (blank for none players)
         public TileType playerTileType;
         public List<Button> buttons = new List<Button>(); // assuming 9 buttons for game grid
         public TileType[] grid = new TileType[9]; // represents how board looks (i.e state of gameboard)

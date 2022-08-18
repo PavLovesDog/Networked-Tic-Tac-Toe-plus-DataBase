@@ -4,6 +4,7 @@ using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using System.Windows.Forms;
+using System.Data.SQLite;
 
 namespace NDS_Networking_Project
 {
@@ -50,20 +51,20 @@ namespace NDS_Networking_Project
         public void ConnectToServer()
         {
             int attempts = 0;
-            while(!socket.Connected)
+            while (!socket.Connected)
             {
                 try
                 {
                     attempts++;
                     SetChat("Connection Attempt: " + attempts);
                     socket.Connect(serverIP, serverPort);
-                } 
-                catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     chatTextBox.Text += "\nError: " + ex.Message + "\n";
                 }
 
-                if(attempts > 5)
+                if (attempts > 5)
                 {
                     AddToChat(nl + "<<< Connection Failed >>>");
                     return;
@@ -77,14 +78,14 @@ namespace NDS_Networking_Project
                       nl + "-----------------------------------------------------------");
 
             //start thread for receeiving data from the server
-            clientSocket.socket.BeginReceive(clientSocket.buffer, 
-                                             0, 
-                                             ClientSocket.BUFFER_SIZE, 
-                                             SocketFlags.None, 
-                                             ReceiveCallBack, 
+            clientSocket.socket.BeginReceive(clientSocket.buffer,
+                                             0,
+                                             ClientSocket.BUFFER_SIZE,
+                                             SocketFlags.None,
+                                             ReceiveCallBack,
                                              clientSocket);
         }
-        
+
         //Everytime a bit of data comes in from server, this function reads it
         public void ReceiveCallBack(IAsyncResult AR)
         {
@@ -94,7 +95,7 @@ namespace NDS_Networking_Project
             {
                 received = currentClientSocket.socket.EndReceive(AR);
             }
-            catch(SocketException ex)
+            catch (SocketException ex)
             {
                 AddToChat("\nError: " + ex.Message + "\n");
                 AddToChat("\n << Disconnecting >>");
@@ -113,111 +114,18 @@ namespace NDS_Networking_Project
             string packet4 = "";
             string currentClientUserName = "";
             string currentGameBoard = "";
-
-            //Catch Jumbled up messages! Why does this happen?
+            string winnerName = "";
+            string loserName = "";
             bool gameReset = false;
-            string resetGameMessage = "";
-            string oWinConditionMessage = "";
-            string xWinConditionMessage = "";
-            string drawMessage = "";
-
-            //TODO SHUTS DOWN ON X WINS NOW...
-            // catch and seperate string for X WIN conditon
-            if(text.Contains(";") && text.Contains("!xwins")) // the delimeter (this is to distinguish between jumbled up messages
-            {
-                string[] substrings = text.Split(";");
-
-                for(int i = 0; i < substrings.Length; ++i)
-                {
-                    if (substrings[i].Contains("!updateboard"))
-                    {
-                        currentGameBoard = "---------";
-                    }
-                    else if (substrings[i].Contains("!changestate"))
-                    {
-                        stateEnum = "1";
-                    }
-                    else if(substrings[i].Contains("'Chatting'"))
-                    {
-                        resetGameMessage = substrings[i];
-                        gameReset = true;
-                    }
-                    else if (substrings[i].Contains("(Player 1)")) // X win specific catch
-                    {
-                        xWinConditionMessage = substrings[i];
-                    }
-                }
-            }
-
-            // catch and seperate string for O WIN conditon
-            if (text.Contains(";") && text.Contains("!owins")) // the delimeter (this is to distinguish between jumbled up messages
-            {
-                string[] substrings = text.Split(";");
-
-                for (int i = 0; i < substrings.Length; ++i)
-                {
-                    if (substrings[i].Contains("!updateboard"))
-                    {
-                        //string[] UBsubString = subString[i].Split(' ');
-                        //currentGameBoard = UBsubString[1];
-                        //currentGameBoard = currentGameBoard.Remove(9); // append ';' for corrent gameboard values
-                        currentGameBoard = "---------";
-                    }
-                    else if (substrings[i].Contains("!changestate"))
-                    {
-                        //string[] CSsubStrings = subString[i].Split(' ');
-                        //stateEnum = CSsubStrings[1]; ??
-                        //stateEnum = stateEnum.Remove(1); // append ';' and everything after
-                        stateEnum = "1";
-                    }
-                    else if (substrings[i].Contains("'Chatting'"))
-                    {
-                        resetGameMessage = substrings[i];
-                        gameReset = true;
-                    }
-                    else if(substrings[i].Contains("(Player 2)")) // O win specific catch
-                    {
-                        oWinConditionMessage = substrings[i];
-                    }
-                }
-            }
-
-            //Catch and seperate string for DRAW condition
-            if (text.Contains(";") && text.Contains("!draw"))
-            {
-                string[] substrings = text.Split(";");
-
-                for (int i = 0; i < substrings.Length; ++i)
-                {
-
-                    if (substrings[i].Contains("!updateboard"))
-                    {
-                        currentGameBoard = "---------";
-                    }
-                    else if (substrings[i].Contains("!changestate"))
-                    {
-                        stateEnum = "1";
-                    }
-                    else if (substrings[i].Contains("'Chatting'"))
-                    {
-                        resetGameMessage = substrings[i];
-                        gameReset = true;
-                    }
-                    else if (substrings[i].Contains("DRAW"))
-                    {
-                        drawMessage = substrings[i];
-                    }
-                }
-            }
 
             if (text.Contains("!displayusername "))
             {
                 tempUserName = text.Remove(0, 17);
                 text = text.Remove(16, text.Length - 16);
             }
-            //NOTE belows check handles 2-3 packets of data that got mixed up together
-            
-            if (text.Contains("!changestate ")) 
+
+            //NOTE belows check handles 2-3 packets of data from login request that got mixed up together
+            if (text.Contains("!changestate "))
             {
                 // seperate string data and assign correctly
                 string[] subStrings = text.Split(' ');
@@ -225,26 +133,24 @@ namespace NDS_Networking_Project
                 // Assign Strings from byte[] received.
                 stateEnum = subStrings[1];
                 char[] letters = stateEnum.ToCharArray();
-                if(letters.Length > 1) // theres too many letters in our state enum because bit stream error
+                if (letters.Length > 1) // theres too many letters in our state enum because bit stream error
                 {
                     //stateEnum = stateEnum.Remove(1);
                     stateEnum = "1"; // hardcode...
                 }
-                
+
                 //check if the change state command contains more commands and assign variables accordingly
-                if(subStrings.Length >= 3 && gameReset == false)
+                if (subStrings.Length >= 3 && gameReset == false)
                 {
                     packet3 = subStrings[2]; // this contains "!success" command
                     currentClientUserName = subStrings[4];
                     // below contains command string message
                     packet4 = subStrings[9].Replace(">>\r\n", "") + " " + subStrings[10] + " " + subStrings[11] + " " + subStrings[12] + " " +
                               subStrings[13] + " " + subStrings[14] + " " + subStrings[15] + " " + subStrings[16] + " " +
-                              subStrings[17]; 
+                              subStrings[17];
                 }
-
-                //text = subStrings[0];
             }
-            
+
             if (text.Contains("!updateboard "))
             {
                 string temp = currentGameBoard; // store previous gameboard for safe keeping
@@ -257,9 +163,15 @@ namespace NDS_Networking_Project
                 {
                     currentGameBoard = temp; // re-set it back to temp one
                 }
-                //text = subString[0];
             }
-            
+
+            if (text.Contains("!xwins") || text.Contains("!owins") || text.Contains("!draw"))
+            {
+                string[] subStrings = text.Split(" ");
+                text = subStrings[0];
+                winnerName = subStrings[1];
+                loserName = subStrings[2];
+            }
 
             // Reaction Commands ---------------------------------------------------------------
             if(text.ToLower() == "!exit")
@@ -285,6 +197,116 @@ namespace NDS_Networking_Project
                 chatTextBox = null;
                 logoPicBox = null;
                 return; // leave function as calling further will cause crashes
+            }
+            else if(text.ToLower() == "!printscores")
+            {
+                // dump all data from users, wins, loses columns to chatbox
+                string connectionStr = "Data Source=TCPChatDB.db";
+                var connection = new SQLiteConnection(connectionStr);
+                connection.Open();
+
+                string scoreCommand = "SELECT Username, Wins, Losses, Draws FROM Users GROUP BY Username ORDER BY Wins DESC";
+                SQLiteCommand scoreCmd = new SQLiteCommand(scoreCommand, connection);
+                SQLiteDataReader scoreRdr = scoreCmd.ExecuteReader();
+
+                AddToChat("__________SCORES_________" + nl +
+                          "User: Wins, Losses, Draws");
+
+                while (scoreRdr.Read())
+                {
+                    // make variables every run through for new user
+                    string name = scoreRdr.GetString(0);
+                    int wins = scoreRdr.GetInt32(1);
+                    int losses = scoreRdr.GetInt32(2);
+                    int draws = scoreRdr.GetInt32(3);
+
+                    if(wins < 10 || losses < 10)
+                        AddToChat(" " + name + ":  " + wins + ",   " + losses + ",   " + draws);
+                    else
+                        AddToChat(" " + name + ":  " + wins + ",  " + losses + ",  " + draws);
+                }
+
+                scoreRdr.Close();
+                connection.Close();
+            }
+            else if(text.ToLower() == "!xwins")
+            {
+                gameReset = true;
+
+                //display winner message
+                AddToChat(nl + "<<< " + winnerName + " (X's) WINS >>>");
+
+                //reset game board
+                ticTacToe.ResetBoard();
+                string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
+                UpdateGameBoard(resetboard, gameReset);
+
+                //reset state too chatting
+                stateEnum = "1"; // chatting
+                ChangeState(stateEnum);
+
+               //RESET player back to PLAYER status
+               if (clientSocket.player == ClientSocket.Player.P1)
+                   clientSocket.player = ClientSocket.Player.NotPlaying;
+               else if (clientSocket.player == ClientSocket.Player.P2)
+                   clientSocket.player = ClientSocket.Player.NotPlaying;
+
+                //display state changes
+                AddToChat(nl + "...All players reverted to 'Chatting' state..." + nl +
+                               "< New game free to join! >");
+            }
+            else if (text.ToLower() == "!owins")
+            {
+                gameReset = true;
+
+                //display winner message
+                AddToChat(nl + "<<< " + winnerName + " (O's) WINS >>>");
+
+                //reset game board
+                ticTacToe.ResetBoard();
+                string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
+                UpdateGameBoard(resetboard, gameReset);
+
+                //reset state too chatting
+                stateEnum = "1"; // chatting
+                ChangeState(stateEnum);
+
+                //RESET player back to PLAYER status
+                if (clientSocket.player == ClientSocket.Player.P1)
+                    clientSocket.player = ClientSocket.Player.NotPlaying;
+                else if (clientSocket.player == ClientSocket.Player.P2)
+                    clientSocket.player = ClientSocket.Player.NotPlaying;
+
+                //display state changes
+                AddToChat(nl + "...All players reverted to 'Chatting' state..." + nl +
+                               "< New game free to join! >");
+            }
+            else if (text.ToLower() == "!draw")
+            {
+                gameReset = true;
+
+                //display winner message
+                AddToChat(nl + "<<< DRAW >>>" + nl
+                             + winnerName + " and " + loserName + " are equal losers.");
+
+                //reset game board
+                ticTacToe.ResetBoard();
+                string resetboard = ticTacToe.GridToString(); // pull data from tictactoe grid (should now be empty)
+                UpdateGameBoard(resetboard, gameReset);
+
+                //reset state too chatting
+                stateEnum = "1"; // chatting
+                ChangeState(stateEnum);
+
+                //RESET player back to PLAYER status
+                if (clientSocket.player == ClientSocket.Player.P1)
+                    clientSocket.player = ClientSocket.Player.NotPlaying;
+                else if (clientSocket.player == ClientSocket.Player.P2)
+                    clientSocket.player = ClientSocket.Player.NotPlaying;
+
+                //display state changes
+                AddToChat(nl + "...All players reverted to 'Chatting' state..." + nl +
+                               "< New game free to join! >");
             }
             else if(text.ToLower() == "!forcedkick") // chose a username that already exists, getting kicked
             {
@@ -316,6 +338,7 @@ namespace NDS_Networking_Project
                     //Update state!
                     clientSocket.state = ClientSocket.State.Chatting;
                     
+                    //Catch for initial bit stream error of receiving messages!
                     // Send Login Success Message and Display State
                     if (packet3 != "" && packet3 == "!success")
                     {
@@ -331,8 +354,6 @@ namespace NDS_Networking_Project
                                     + "Current State: " + clientSocket.state.ToString());
                         packet3 = ""; // reset for change state during gameplay
                     }
-
-                    ////////////////////////////////////
 
                     // Notify client of other commands available
                     if (packet4 != "")
@@ -352,7 +373,7 @@ namespace NDS_Networking_Project
                 clientSocket.player = ClientSocket.Player.P1;
                 clientSocket.isTurn = true;
 
-                AddToChat(nl + "Let's play Tic Tac Toe!" + nl + "You are: PLAYER 1 (X's)");
+                AddToChat(nl + "Let's play Tic Tac Toe!" + nl + "You are: PLAYER 1 (X's)" + nl + nl + "...Awaiting another player...");
             }
             else if (text.ToLower() == "!player2")
             {
@@ -360,7 +381,7 @@ namespace NDS_Networking_Project
                 clientSocket.player = ClientSocket.Player.P2;
                 clientSocket.isTurn = false;
 
-                AddToChat(nl + "Let's play Tic Tac Toe!" + nl + "You are: PLAYER 2 (O's)");
+                AddToChat(nl + "Let's play Tic Tac Toe!" + nl + "You are: PLAYER 2 (O's)" + nl + nl + "Ready To Play!");
             }
             else if(text.ToLower() == "!gamefull")
             {
@@ -380,86 +401,12 @@ namespace NDS_Networking_Project
             }
             else if(text.Contains("!updateboard"))
             {
-                //update client game grid
-                for (int i = 0; i < ticTacToe.grid.Length; i++)
-                {
-                    // break string down to read seperate chars
-                    char[] position = currentGameBoard.ToCharArray();
-                    TileType tile = new TileType();
-                    
-                    if (position[i] == 'x')
-                    {
-                        tile = TileType.Cross;
-                    }
-                    else if (position[i] == 'o')
-                    {
-                        tile = TileType.Naught;
-                    }
-                    else if (position[i] == '-')
-                    {
-                        tile = TileType.Blank;
-                    }
-
-                    ticTacToe.grid[i] = tile; // set grid
-                }
-                //update board text 
-                UpdateGameBoardText(currentGameBoard);
-                updateTurnLabel(false);
-            }
-            else if (gameReset)
-            {
-                if (oWinConditionMessage != "")
-                {
-                    AddToChat(nl + oWinConditionMessage);
-                }
-                else if (xWinConditionMessage != "")
-                {
-                    AddToChat(nl + xWinConditionMessage);
-                }
-                else if (drawMessage != "")
-                {
-                    AddToChat(nl + drawMessage);
-                }
-
-                AddToChat(nl + resetGameMessage);
-                gameReset = false;
-
-                #region Update board catch
-                //if (text.Contains("!owins") || text.Contains("!xwins"))
-                //{
-                for (int i = 0; i < ticTacToe.grid.Length; i++)
-                {
-                    // break string down to read seperate chars
-                    char[] position = currentGameBoard.ToCharArray();
-                    TileType tile = new TileType();
-
-                    if (position[i] == 'x')
-                    {
-                        tile = TileType.Cross;
-                    }
-                    else if (position[i] == 'o')
-                    {
-                        tile = TileType.Naught;
-                    }
-                    else if (position[i] == '-')
-                    {
-                        tile = TileType.Blank;
-                    }
-
-                    ticTacToe.grid[i] = tile; // set grid
-                }
-                //update board text 
-                UpdateGameBoardText(currentGameBoard);
-                updateTurnLabel(true);
-                //}
-                #endregion
+                UpdateGameBoard(currentGameBoard, gameReset);
             }
             else // regular chat message!
             {
                 AddToChat(text);
             }
-
-
             // ----------------------------------------------------------------------------- Reaction Commands
 
             //start thread for receeiving data from the server
@@ -482,6 +429,51 @@ namespace NDS_Networking_Project
         public void Close()
         {
             socket.Close();
+        }
+
+        public void UpdateGameBoard(string currentGameBoard, bool condition)
+        {
+            //update client game grid
+            for (int i = 0; i < ticTacToe.grid.Length; i++)
+            {
+                // break string down to read seperate chars
+                char[] position = currentGameBoard.ToCharArray();
+                TileType tile = new TileType();
+
+                if (position[i] == 'x')
+                {
+                    tile = TileType.Cross;
+                }
+                else if (position[i] == 'o')
+                {
+                    tile = TileType.Naught;
+                }
+                else if (position[i] == '-')
+                {
+                    tile = TileType.Blank;
+                }
+
+                ticTacToe.grid[i] = tile; // set grid
+            }
+            //update board text 
+            UpdateGameBoardText(currentGameBoard);
+            updateTurnLabel(condition);
+        }
+
+        public void ChangeState(string stateEnum)
+        {
+            if (stateEnum == "0")
+            {
+                clientSocket.state = ClientSocket.State.Login;
+            }
+            else if (stateEnum == "1")
+            {
+                clientSocket.state = ClientSocket.State.Chatting;
+            }
+            else if (stateEnum == "2")
+            {
+                clientSocket.state = ClientSocket.State.Playing;
+            }
         }
     }
 }

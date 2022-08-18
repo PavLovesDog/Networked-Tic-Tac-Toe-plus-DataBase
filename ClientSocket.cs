@@ -15,15 +15,12 @@ namespace NDS_Networking_Project
             Playing
         }
 
-        //IF game player(not playing(default), player 1, player 2 enum?)
         public enum Player
         {
             NotPlaying,
             P1,
             P2
         }
-
-        //IF its this clients turn at the game (True or False(default))
 
         public State state;
         public Player player;

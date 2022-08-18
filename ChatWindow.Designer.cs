@@ -97,6 +97,7 @@ namespace NDS_Networking_Project
             // label1
             // 
             this.label1.AutoSize = true;
+            this.label1.BackColor = System.Drawing.Color.Transparent;
             this.label1.Location = new System.Drawing.Point(188, 34);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(29, 20);

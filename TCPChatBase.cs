@@ -17,7 +17,7 @@ namespace NDS_Networking_Project
         public TextBox chatTextBox; // to access main chat text box in app
         public int port; //when listenning for data, need port open
 
-        //TODO When debugging SERVER SIDE as the HOST, an error saying the buttons accessed from another thread other than what it was created on throws.
+        // function Used by both server and client to update their own windows board
         public void UpdateGameBoardText(string s)
         {
             char[] position = s.ToCharArray();
@@ -37,6 +37,7 @@ namespace NDS_Networking_Project
             }
         }
 
+        //function to change text below board, notifying players of whose turn it is
         public void updateTurnLabel(bool reset)
         {
             if(!reset)
