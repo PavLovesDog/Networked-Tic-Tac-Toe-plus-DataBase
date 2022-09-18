@@ -1,0 +1,10 @@
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\NDS Tic Tac Toe Project.exe
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\NDS Tic Tac Toe Project.dll
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\NDS Tic Tac Toe Project.deps.json
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\NDS Tic Tac Toe Project.runtimeconfig.json
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\NDS Tic Tac Toe Project.pdb
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\System.Data.SQLite.dll
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\runtimes\linux-x64\native\SQLite.Interop.dll
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\runtimes\osx-x64\native\SQLite.Interop.dll
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\runtimes\win-x64\native\SQLite.Interop.dll
+C:\Users\charl\Desktop\Git\NDS203-A3-Networked-Tic-Tac-Toe-plus-DataBase\bin\Debug\netcoreapp3.1\publish\runtimes\win-x86\native\SQLite.Interop.dll

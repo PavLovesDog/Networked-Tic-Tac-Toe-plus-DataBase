@@ -110,6 +110,8 @@ namespace NDS_Networking_Project
             string stateEnum = "";
             string packet3 = "";
             string packet4 = "";
+            string packet5 = "";
+            string packet6 = "";
             string currentClientUserName = "";
             string currentGameBoard = "";
             string winnerName = "";
@@ -135,8 +137,24 @@ namespace NDS_Networking_Project
             // Ammend command strings received --------------------------------------------------
             if (text.Contains("!displayusername "))
             {
-                tempUserName = text.Remove(0, 17);
-                text = text.Remove(16, text.Length - 16);
+                string[] substrings = text.Split("!");
+                if(substrings.Length > 2) // theres a jumbled message in here
+                {
+                    tempUserName = substrings[1]; // set as first message, this SHOULD be "displayusername [name_here]"
+                    tempUserName = tempUserName.Remove(0, 16); // grab username
+                    //text = text.Remove(16, text.Length - 16); // set text back to basic command
+                }
+                else // its just the usual
+                {
+                    tempUserName = text.Remove(0, 17); // grab username
+                    //text = text.Remove(16, text.Length - 16); // set text back to basic command
+                }
+
+                // update username display
+                clientUsernameTextBox.Invoke((Action)delegate
+                {
+                    clientUsernameTextBox.Text = tempUserName;
+                });
             }
 
             //NOTE belows check handles 2-3 packets of data from login request that got mixed up together
@@ -157,12 +175,32 @@ namespace NDS_Networking_Project
                 //check if the change state command contains more commands and assign variables accordingly
                 if (subStrings.Length >= 3 && gameReset == false)
                 {
-                    packet3 = subStrings[2]; // this contains "!success" command
-                    currentClientUserName = subStrings[4];
-                    // below contains command string message
-                    packet4 = subStrings[9].Replace(">>\r\n", "") + " " + subStrings[10] + " " + subStrings[11] + " " + subStrings[12] + " " +
-                              subStrings[13] + " " + subStrings[14] + " " + subStrings[15] + " " + subStrings[16] + " " +
-                              subStrings[17];
+
+                    // find !success command
+                    for (int i = 0; i < subStrings.Length; i++)
+                    {
+                        if (subStrings[i].Contains("!success2")) // First tme login/creation condition
+                        {
+                            packet3 = subStrings[i];// this contains "!success" command
+                            currentClientUserName = subStrings[5];
+                            // below contains command string message
+                            packet4 = subStrings[10].Replace(">>\r\n", "") + " " + subStrings[11] + " " + subStrings[12] + " " + subStrings[13] + " " +
+                                      subStrings[14] + " " + subStrings[15] + " " + subStrings[16] + " " + subStrings[17] + " " +
+                                      subStrings[18];
+                            break; // leave for loop
+                        }
+                        else if(subStrings[i].Contains("!success")) // re-login condition
+                        {
+                            // this contains "!success" command
+                            packet3 = subStrings[i];
+                            currentClientUserName = subStrings[4];
+                            // below contains command string message
+                            packet4 = subStrings[9].Replace(">>\r\n", "") + " " + subStrings[10] + " " + subStrings[11] + " " + subStrings[12] + " " +
+                                      subStrings[13] + " " + subStrings[14] + " " + subStrings[15] + " " + subStrings[16] + " " +
+                                      subStrings[17];
+                            break; // leave for loop
+                        }
+                    }
                 }
             }
 
@@ -330,13 +368,13 @@ namespace NDS_Networking_Project
                 AddToChat(nl + "<< Client Disconnected >>");
                 return;
             }
-            else if (text.ToLower() == "!displayusername")
-            {
-                clientUsernameTextBox.Invoke((Action)delegate
-                {
-                    clientUsernameTextBox.Text = tempUserName;
-                });
-            }
+            //else if (text.ToLower() == "!displayusername")
+            //{
+            //    clientUsernameTextBox.Invoke((Action)delegate
+            //    {
+            //        clientUsernameTextBox.Text = tempUserName;
+            //    });
+            //}
             else if(text.Contains("!changestate"))
             {
                 if(stateEnum == "0")
