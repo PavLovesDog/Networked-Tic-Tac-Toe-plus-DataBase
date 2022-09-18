@@ -581,6 +581,16 @@ namespace NDS_Networking_Project
                     //alert client
                     byte[] data = Encoding.ASCII.GetBytes("!player2");
                     currentClientSocket.socket.Send(data);
+
+                    //Notify player 1
+                    for (int i = 0; i < clientSockets.Count; ++i)
+                    {
+                        if (clientSockets[i].player == ClientSocket.Player.P1)
+                        {
+                            byte[] p1message = Encoding.ASCII.GetBytes("!letsplay");
+                            clientSockets[i].socket.Send(p1message);
+                        }
+                    }
                 }
                 else //game is full
                 {
@@ -796,6 +806,7 @@ namespace NDS_Networking_Project
                             if (clientSockets[j].player == ClientSocket.Player.P1)
                             {
                                 clientSockets[j].isTurn = false;
+                                //clientSockets[j].socket.Send(data); // show who's turn it is in window
                                 break; // leave inner loop, we'eve found P1
                             }
                         }
@@ -816,6 +827,7 @@ namespace NDS_Networking_Project
                             {
                                 //clientSockets[j].justHadTurn = true;
                                 clientSockets[j].isTurn = false;
+                                //clientSockets[j].socket.Send(data); // show who's turn it is in window
                                 break; // leave inner loop, we'eve found P2
                             }
                         }

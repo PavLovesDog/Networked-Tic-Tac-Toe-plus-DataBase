@@ -116,6 +116,22 @@ namespace NDS_Networking_Project
             string loserName = "";
             bool gameReset = false;
 
+            #region Get Time Stamp
+            // get time info
+            DateTime time = DateTime.Now;
+            string timeNow = time.ToString();
+            int hour = time.Hour;
+            if (hour > 12) // PM, moving into 24hour time
+            {
+                hour -= 12; // convert to 24 hour time
+                timeNow = hour + ":" + time.Minute + ":" + time.Second + "pm";
+            }
+            else // AM
+            {
+                timeNow = hour + ":" + time.Minute + ":" + time.Second + "am";
+            }
+            #endregion
+
             // Ammend command strings received --------------------------------------------------
             if (text.Contains("!displayusername "))
             {
@@ -379,21 +395,25 @@ namespace NDS_Networking_Project
 
                 AddToChat(nl + "Let's play Tic Tac Toe!" + nl + "You are: PLAYER 2 (O's)" + nl + nl + "Ready To Play!");
             }
+            else if (text.ToLower() == "!letsplay")
+            {
+                AddToChat("Player 2 joined - Ready To Play!");
+            }
             else if(text.ToLower() == "!gamefull")
             {
                 AddToChat(nl + "< Game Full >" + nl + "..Wait until next round, peasant...");
             }
             else if (text.ToLower() == "!updateturn")
             {
-                clientSocket.isTurn = true;
                 if (clientSocket.player == ClientSocket.Player.P1) // X's
                 {
-                    AddToChat(nl + "<< Player 1's Turn (X) >>");
+                    AddToChat(nl + timeNow + " - << Player 1's Turn (X) >>");
                 }
-                else
+                else // O's
                 {
-                    AddToChat(nl + "<< Player 2's Turn (O) >>");
+                    AddToChat(nl + timeNow + " - << Player 2's Turn (O) >>");
                 }
+                clientSocket.isTurn = true;
             }
             else if(text.Contains("!updateboard"))
             {
@@ -401,7 +421,7 @@ namespace NDS_Networking_Project
             }
             else // regular chat message!
             {
-                AddToChat(text);
+                AddToChat(timeNow + " - " + text);
             }
             // ----------------------------------------------------------------------------- Reaction Commands
 
